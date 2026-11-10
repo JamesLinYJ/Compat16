@@ -21,8 +21,7 @@ pub(super) fn execute(
 ) -> Result<Win32HostImportResult, RuntimeError> {
     match call {
         C::LogicalDrives => {
-            // SAFETY: `GetLogicalDrives` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            let drives = unsafe { GetLogicalDrives() };
+            let drives = logical_drives();
             let error = (drives == 0).then(api_error);
             Ok(result(V::Dword(drives), error))
         }
@@ -90,7 +89,9 @@ fn drive_type(
     codec: GuestTextCodec,
 ) -> Result<Win32HostImportResult, RuntimeError> {
     let root = native_root(codec, root, wide)?;
-    // SAFETY: the optional UTF-16 root is host-owned and NUL-terminated.
+    // SAFETY: `root` is null or an owned NUL-terminated UTF-16 path that stays
+    // live for this call. GetDriveTypeW returns a drive-type code and retains
+    // no pointer.
     let value = unsafe { GetDriveTypeW(root.as_ref().map_or(ptr::null(), Vec::as_ptr)) };
     Ok(result(V::Dword(value), None))
 }
@@ -102,8 +103,9 @@ fn disk_free_space(
 ) -> Result<Win32HostImportResult, RuntimeError> {
     let root = native_root(codec, root, wide)?;
     let mut values = [0u32; 4];
-    // SAFETY: root is an optional owned terminated string and all four DWORD
-    // outputs point to the local initialized array for this synchronous call.
+    // SAFETY: `root` is null or an owned NUL-terminated UTF-16 path that stays
+    // live for this call. The four outputs are local integers that also stay
+    // live. A zero BOOL is the only failure result.
     let success = unsafe {
         GetDiskFreeSpaceW(
             root.as_ref().map_or(ptr::null(), Vec::as_ptr),
@@ -135,36 +137,43 @@ fn disk_free_space_ex(
     codec: GuestTextCodec,
 ) -> Result<Win32HostImportResult, RuntimeError> {
     let root = native_root(codec, root, wide)?;
-    let mut values = [0u64; 3];
-    // SAFETY: each optional output is either a valid local QWORD or native
-    // NULL, matching the guest's output-pointer presence.
+    let mut available = 0u64;
+    let mut total = 0u64;
+    let mut free = 0u64;
+    let available_ptr = if available_present {
+        &mut available
+    } else {
+        ptr::null_mut()
+    };
+    let total_ptr = if total_present {
+        &mut total
+    } else {
+        ptr::null_mut()
+    };
+    let free_ptr = if free_present {
+        &mut free
+    } else {
+        ptr::null_mut()
+    };
+    // SAFETY: `root` is null or an owned NUL-terminated UTF-16 path that stays
+    // live for this call. Each output pointer is null or one of those local
+    // integers, which also stay live for the call. A zero BOOL is the only
+    // failure result.
     let success = unsafe {
         GetDiskFreeSpaceExW(
             root.as_ref().map_or(ptr::null(), Vec::as_ptr),
-            if available_present {
-                &mut values[0]
-            } else {
-                ptr::null_mut()
-            },
-            if total_present {
-                &mut values[1]
-            } else {
-                ptr::null_mut()
-            },
-            if free_present {
-                &mut values[2]
-            } else {
-                ptr::null_mut()
-            },
+            available_ptr,
+            total_ptr,
+            free_ptr,
         )
     } != 0;
     let error = (!success).then(api_error);
     Ok(result(
         V::DiskFreeSpaceEx {
             success,
-            available: values[0],
-            total: values[1],
-            free: values[2],
+            available,
+            total,
+            free,
         },
         error,
     ))
@@ -190,40 +199,21 @@ fn volume_info(
     if guest_wide {
         let mut volume = wide_buffer(volume_capacity, volume_present)?;
         let mut filesystem = wide_buffer(filesystem_capacity, filesystem_present)?;
-        // SAFETY: root/output buffers are adapter-owned; scalar outputs are
-        // NULL unless the guest supplied their respective pointers.
-        let success = unsafe {
-            GetVolumeInformationW(
-                root.as_ref().map_or(ptr::null(), Vec::as_ptr),
-                if volume_present {
-                    volume.as_mut_ptr()
-                } else {
-                    ptr::null_mut()
-                },
-                volume_capacity,
-                if want_serial {
-                    &mut serial
-                } else {
-                    ptr::null_mut()
-                },
-                if want_maximum_component {
-                    &mut maximum_component
-                } else {
-                    ptr::null_mut()
-                },
-                if want_flags {
-                    &mut flags
-                } else {
-                    ptr::null_mut()
-                },
-                if filesystem_present {
-                    filesystem.as_mut_ptr()
-                } else {
-                    ptr::null_mut()
-                },
-                filesystem_capacity,
-            )
-        } != 0;
+        let success = query_volume_information(
+            &root,
+            &mut volume,
+            volume_capacity,
+            volume_present,
+            &mut filesystem,
+            filesystem_capacity,
+            filesystem_present,
+            &mut serial,
+            want_serial,
+            &mut maximum_component,
+            want_maximum_component,
+            &mut flags,
+            want_flags,
+        );
         let error = (!success).then(api_error);
         let volume_name = if success && volume_present {
             S::Wide(prefix_wide(&volume)?)
@@ -254,44 +244,27 @@ fn volume_info(
     const MAX_VOLUME_TEXT: u32 = 261;
     let mut volume = wide_buffer(MAX_VOLUME_TEXT, volume_present)?;
     let mut filesystem = wide_buffer(MAX_VOLUME_TEXT, filesystem_present)?;
-    // SAFETY: all host pointers are native-owned. Guest capacities are not
-    // passed to W because they count encoded bytes rather than UTF-16 units.
-    let native_success = unsafe {
-        GetVolumeInformationW(
-            root.as_ref().map_or(ptr::null(), Vec::as_ptr),
-            if volume_present {
-                volume.as_mut_ptr()
-            } else {
-                ptr::null_mut()
-            },
-            if volume_present { MAX_VOLUME_TEXT } else { 0 },
-            if want_serial {
-                &mut serial
-            } else {
-                ptr::null_mut()
-            },
-            if want_maximum_component {
-                &mut maximum_component
-            } else {
-                ptr::null_mut()
-            },
-            if want_flags {
-                &mut flags
-            } else {
-                ptr::null_mut()
-            },
-            if filesystem_present {
-                filesystem.as_mut_ptr()
-            } else {
-                ptr::null_mut()
-            },
-            if filesystem_present {
-                MAX_VOLUME_TEXT
-            } else {
-                0
-            },
-        )
-    } != 0;
+    // Guest capacities count encoded bytes, so the W call uses the documented
+    // host maximum instead of those guest sizes.
+    let native_success = query_volume_information(
+        &root,
+        &mut volume,
+        if volume_present { MAX_VOLUME_TEXT } else { 0 },
+        volume_present,
+        &mut filesystem,
+        if filesystem_present {
+            MAX_VOLUME_TEXT
+        } else {
+            0
+        },
+        filesystem_present,
+        &mut serial,
+        want_serial,
+        &mut maximum_component,
+        want_maximum_component,
+        &mut flags,
+        want_flags,
+    );
     if !native_success {
         return Ok(result(
             V::VolumeInformation {
@@ -341,6 +314,63 @@ fn volume_info(
         },
         error,
     ))
+}
+
+fn logical_drives() -> u32 {
+    // SAFETY: GetLogicalDrives takes no pointers. Zero is its only failure code.
+    unsafe { GetLogicalDrives() }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn query_volume_information(
+    root: &Option<Vec<u16>>,
+    volume: &mut [u16],
+    volume_capacity: u32,
+    volume_present: bool,
+    filesystem: &mut [u16],
+    filesystem_capacity: u32,
+    filesystem_present: bool,
+    serial: &mut u32,
+    want_serial: bool,
+    maximum_component: &mut u32,
+    want_maximum_component: bool,
+    flags: &mut u32,
+    want_flags: bool,
+) -> bool {
+    let root_ptr = root.as_ref().map_or(ptr::null(), Vec::as_ptr);
+    let volume_ptr = if volume_present {
+        volume.as_mut_ptr()
+    } else {
+        ptr::null_mut()
+    };
+    let filesystem_ptr = if filesystem_present {
+        filesystem.as_mut_ptr()
+    } else {
+        ptr::null_mut()
+    };
+    let serial_ptr = if want_serial { serial } else { ptr::null_mut() };
+    let component_ptr = if want_maximum_component {
+        maximum_component
+    } else {
+        ptr::null_mut()
+    };
+    let flags_ptr = if want_flags { flags } else { ptr::null_mut() };
+    // SAFETY: `root_ptr` is null or an owned NUL-terminated UTF-16 path that
+    // stays live for this call. Each output pointer is null or a caller-owned
+    // buffer or local that also stays live for the call. A zero BOOL is the
+    // only failure result.
+    (unsafe {
+        GetVolumeInformationW(
+            root_ptr,
+            volume_ptr,
+            volume_capacity,
+            serial_ptr,
+            component_ptr,
+            flags_ptr,
+            filesystem_ptr,
+            filesystem_capacity,
+        )
+    }) != 0
 }
 
 fn encoded_name_fits(value: &[u8], capacity: u32) -> Result<bool, RuntimeError> {
