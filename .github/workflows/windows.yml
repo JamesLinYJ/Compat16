@@ -260,6 +260,7 @@ jobs:
             '-p runtime --lib win16_runtime::winmem32::tests::'
             '-p runtime --lib win16_runtime::media_io::buffer_tests::'
             '-p runtime --lib win16_runtime::message_calls::timers::tests::'
+            '-p runtime --lib win16_runtime::user_hooks::tests::'
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::'
             '-p runtime --lib win16_runtime::ole1::tests::'
             '-p host-services --lib windows::win16_media_services::timer::tests::'
@@ -327,7 +328,8 @@ jobs:
             '-p runtime --lib win16_runtime::user_drag::drag_tests::' = 8
             '-p runtime --lib win16_runtime::winmem32::tests::' = 4
             '-p runtime --lib win16_runtime::media_io::buffer_tests::' = 10
-            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 3
+            '-p runtime --lib win16_runtime::message_calls::timers::tests::' = 5
+            '-p runtime --lib win16_runtime::user_hooks::tests::' = 1
             '-p runtime --lib win16_runtime::dispatch::input_event_tests::' = 2
             '-p runtime --lib win16_runtime::ole1::tests::' = 8
             '-p host-services --lib windows::win16_media_services::timer::tests::' = 3
