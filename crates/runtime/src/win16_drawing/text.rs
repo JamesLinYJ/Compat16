@@ -78,7 +78,11 @@ impl Win16State {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
                 };
-                match host.win16_gdi(Operation::GetTextExtent { dc, text, code_page: None })? {
+                match host.win16_gdi(Operation::GetTextExtent {
+                    dc,
+                    text,
+                    code_page: None,
+                })? {
                     HostResult::Size { width, height } => Ok(pack_words(width, height)),
                     _ => Err(wrong_result("GetTextExtent")),
                 }
@@ -222,9 +226,10 @@ const WIN31_TEXT_ALIGN: u32 = 0x001F;
 /// `ETO_GRAYED | ETO_OPAQUE | ETO_CLIPPED` from Windows 3.1 `WINDOWS.H`.
 const WIN31_EXT_TEXT_OUT: u16 = 0x0007;
 
-/// Not a Windows 3.1 option. The export decoder has already read two
-/// `lpDx` values per byte when this bit is set, so the host call must still
-/// describe that array. Clearing it here would reject the call.
+/// Not a Windows 3.1 option. The export decoder reads one `lpDx` int per
+/// byte when this bit is set and forwards the bit with the array. Clearing
+/// it here would hide that the spacing array was consumed. The host draws
+/// with those single advances and does not read a second int per byte.
 const ETO_PDY_ALREADY_READ: u16 = 0x2000;
 
 /// Windows 3.1 `ExtTextOut` options are `ETO_GRAYED`, `ETO_OPAQUE`, and

@@ -109,27 +109,48 @@ pub(super) fn execute(
                 height: native_size.cy,
             })
         }
-        Op::AddFontResource { guest_path } => {
+        Op::AddFontResource {
+            guest_path,
+            application_path,
+            task_path,
+        } => {
             // Programmer's Reference, Volume 2: the name includes an extension
             // and is passed to LoadLibrary. A name LoadLibrary cannot load
             // adds no fonts. The host call is only for an MZ font module.
-            let Some(path) = windows31_font_module(filesystem, &guest_path) else {
+            let Some(path) = windows31_font_module(
+                dcs.text_codec(),
+                filesystem,
+                &guest_path,
+                &application_path,
+                &task_path,
+            )?
+            else {
                 return Ok(Value::FontResourceCount(0));
             };
-            // The Windows 3.1 SDK declares an ANSI DOS path. Resolve its
-            // bytes through the active DOS filesystem mapping, including a
-            // native-volume mount, then use W so the host ACP cannot
-            // reinterpret the guest code page.
+            // The Windows 3.1 SDK declares an ANSI filename. LoadLibrary
+            // search produces the host path, then W is used so the host ACP
+            // cannot reinterpret the guest code page.
             // SAFETY: `path` is an owned, NUL-terminated UTF-16 path produced
             // from the filesystem's resolved native path.
             Ok(Value::FontResourceCount(unsafe {
                 AddFontResourceW(path.as_ptr())
             }))
         }
-        Op::RemoveFontResource { guest_path } => {
+        Op::RemoveFontResource {
+            guest_path,
+            application_path,
+            task_path,
+        } => {
             // Volume 2 uses the same filename rule as AddFontResource and
             // returns zero when the resource cannot be removed.
-            let Some(path) = windows31_font_module(filesystem, &guest_path) else {
+            let Some(path) = windows31_font_module(
+                dcs.text_codec(),
+                filesystem,
+                &guest_path,
+                &application_path,
+                &task_path,
+            )?
+            else {
                 return Ok(Value::Bool(false));
             };
             // SAFETY: `path` is an owned, NUL-terminated UTF-16 path produced
@@ -503,12 +524,33 @@ fn wide_parent_directory(file: &[u16]) -> Option<Vec<u16>> {
     Some(directory)
 }
 
-fn windows31_font_module(filesystem: &mut Filesystem, guest_path: &[u8]) -> Option<Vec<u16>> {
+fn windows31_font_module(
+    codec: super::guest_text::GuestTextCodec,
+    filesystem: &mut Filesystem,
+    guest_path: &[u8],
+    application_path: &[u8],
+    task_path: &runtime::Win16GuestPath,
+) -> Result<Option<Vec<u16>>, RuntimeError> {
     if !guest_font_filename_has_extension(filesystem, guest_path) {
-        return None;
+        return Ok(None);
     }
-    let path = font_resource_path(filesystem, guest_path, false)?;
-    loadable_font_module(&path).then_some(path)
+    // Programmer's Reference, Volume 2: AddFontResource passes the filename
+    // to LoadLibrary. The search is the task directory, then Windows, the
+    // 16-bit system directory, the system directory, the application
+    // directory, and PATH.
+    // A name that already contains a directory stays on that one candidate.
+    // No `.DLL` suffix is added; the caller already required an extension.
+    let Some(path) = super::win16_module_files::locate_library_file(
+        codec,
+        filesystem,
+        guest_path,
+        application_path,
+        task_path,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(loadable_font_module(&path).then_some(path))
 }
 
 fn guest_font_filename_has_extension(filesystem: &Filesystem, path: &[u8]) -> bool {

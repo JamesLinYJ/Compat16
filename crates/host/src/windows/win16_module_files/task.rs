@@ -200,6 +200,252 @@ fn read_task_candidate(
     )
 }
 
+/// Existing file in the Win3.1 LoadLibrary order, without a `.DLL` suffix.
+///
+/// The Windows 3.1 Programmer's Reference passes a font filename through
+/// LoadLibrary. The order is the calling task, then Windows, the
+/// 16-bit system directory, the system directory, the application directory,
+/// and PATH. A name that already contains a directory is only the task
+/// candidate. The process current directory is not a second current directory.
+pub(crate) fn locate_library_file(
+    codec: GuestTextCodec,
+    filesystem: &mut Filesystem,
+    name: &[u8],
+    application_path: &[u8],
+    task_path: &Win16GuestPath,
+) -> Result<Option<Vec<u16>>, RuntimeError> {
+    let wide = match codec.to_wide(name) {
+        Ok(name) => name,
+        Err(error) if error.kind() == Kind::InvalidInput => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    if wide.is_empty() || wide.contains(&0) || wide.len() > MAX_WIDE_PATH_UNITS {
+        return Ok(None);
+    }
+    let search = !has_directory_component(&wide);
+    match existing_task_file(filesystem, task_path)? {
+        Some(path) => return Ok(Some(path)),
+        None if !search => return Ok(None),
+        None => {}
+    }
+
+    if let Some(path) =
+        search_existing_directory(GetWindowsDirectoryW, "read Windows directory", &wide)?
+    {
+        return Ok(Some(path));
+    }
+    if let Some(configured) = optional_env_wide("VDM_SYSTEM_DIR")? {
+        if let Some(path) = search_existing_task_directory(
+            filesystem,
+            task_path,
+            trim_path_quotes(&configured),
+            &wide,
+        )? {
+            return Ok(Some(path));
+        }
+    }
+    if let Some(path) =
+        search_existing_directory(GetSystemDirectoryW, "read Windows system directory", &wide)?
+    {
+        return Ok(Some(path));
+    }
+    let application_path = match codec.to_wide(application_path) {
+        Ok(path) => path,
+        Err(error) if error.kind() == Kind::InvalidInput => Vec::new(),
+        Err(error) => return Err(error),
+    };
+    if let Some(directory) = application_directory(&application_path)? {
+        if let Some(path) =
+            search_existing_task_directory(filesystem, task_path, &directory, &wide)?
+        {
+            return Ok(Some(path));
+        }
+    }
+    if let Some(path_env) = std::env::var_os("PATH") {
+        if let Some(path) = search_path_with(&path_env, |directory| {
+            search_existing_task_directory(filesystem, task_path, directory, &wide)
+        })? {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn existing_task_file(
+    filesystem: &mut Filesystem,
+    path: &Win16GuestPath,
+) -> Result<Option<Vec<u16>>, RuntimeError> {
+    let relative = match super::super::win16_file_paths::resolve(filesystem, path, true, false) {
+        Ok(path) => path,
+        Err(error) => {
+            // AddFontResource returns zero when LoadLibrary cannot open the
+            // file. Access denied is that guest failure, not a host fault
+            // that interrupts dispatch.
+            return if font_path_unavailable(error.code) {
+                Ok(None)
+            } else {
+                Err(RuntimeError::with_source(
+                    Kind::HostFailure,
+                    "resolve Win16 font library file",
+                    error,
+                ))
+            };
+        }
+    };
+    let metadata = match filesystem.root.metadata(&relative) {
+        Ok(metadata) => metadata,
+        Err(error) if font_metadata_unavailable(&error) => return Ok(None),
+        Err(error) => {
+            return Err(RuntimeError::with_source(
+                Kind::HostFailure,
+                "inspect Win16 font library file",
+                error,
+            ));
+        }
+    };
+    if metadata.is_dir() {
+        return Ok(None);
+    }
+    let wide = wide_os_units(filesystem.canonical_root.join(&relative).as_os_str())?;
+    nul_terminated_wide(&wide).map(Some)
+}
+
+fn search_existing_directory(
+    api: DirectoryApi,
+    operation: &'static str,
+    file_name: &[u16],
+) -> Result<Option<Vec<u16>>, RuntimeError> {
+    match wide_directory(api, operation) {
+        Ok(directory) => probe_joined(&directory, file_name),
+        Err(error) if error.kind() == Kind::InvalidInput => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+fn search_existing_task_directory(
+    filesystem: &mut Filesystem,
+    task_path: &Win16GuestPath,
+    directory: &[u16],
+    file_name: &[u16],
+) -> Result<Option<Vec<u16>>, RuntimeError> {
+    if directory.is_empty() {
+        return Ok(None);
+    }
+    let slash = |unit: u16| matches!(unit, 0x5c | 0x2f);
+    let drive_qualified = directory.get(1) == Some(&0x3a);
+    if directory.len() >= 2 && slash(directory[0]) && slash(directory[1])
+        || drive_qualified && directory.get(2).copied().is_some_and(slash)
+    {
+        return probe_joined(directory, file_name);
+    }
+    let relative = if drive_qualified {
+        let drive = u8::try_from(directory[0])
+            .ok()
+            .map(|unit| unit.to_ascii_uppercase());
+        if drive != Some(b'A' + task_path.drive) {
+            return Ok(None);
+        }
+        &directory[2..]
+    } else {
+        directory
+    };
+    let base = if relative.first().copied().is_some_and(slash) {
+        filesystem.canonical_root.clone()
+    } else {
+        let mut parent = task_path.clone();
+        parent.components.pop();
+        let parent = filesystem
+            .resolve_win16_guest_path(&parent)
+            .map_err(|error| {
+                RuntimeError::with_source(
+                    Kind::HostFailure,
+                    "resolve task directory for Win16 font search",
+                    error,
+                )
+            })?;
+        filesystem.canonical_root.join(parent)
+    };
+    let base = wide_os_units(base.as_os_str())?;
+    let relative = relative
+        .strip_prefix(&[0x5c])
+        .or_else(|| relative.strip_prefix(&[0x2f]))
+        .unwrap_or(relative);
+    let directory = match join_wide_path(&base, relative) {
+        Ok(path) => path,
+        Err(_) => return Ok(None),
+    };
+    probe_joined(&directory, file_name)
+}
+
+fn probe_joined(directory: &[u16], file_name: &[u16]) -> Result<Option<Vec<u16>>, RuntimeError> {
+    if directory.is_empty() {
+        return Ok(None);
+    }
+    let candidate = match join_wide_path(directory, file_name) {
+        Ok(path) => path,
+        Err(_) => return Ok(None),
+    };
+    probe_wide_file(&candidate)
+}
+
+fn probe_wide_file(path: &[u16]) -> Result<Option<Vec<u16>>, RuntimeError> {
+    if path.is_empty() || path.contains(&0) {
+        return Ok(None);
+    }
+    let terminated = nul_terminated_wide(path)?;
+    // SAFETY: `terminated` is a caller-owned NUL-terminated UTF-16 path and
+    // stays live for this synchronous attribute query. No guest address is passed.
+    let attributes = unsafe { GetFileAttributesW(terminated.as_ptr()) };
+    if attributes == INVALID_FILE_ATTRIBUTES || attributes & FILE_ATTRIBUTE_DIRECTORY != 0 {
+        return Ok(None);
+    }
+    Ok(Some(terminated))
+}
+
+/// A missing file and an access-denied file are both ordinary font-load
+/// misses. AddFontResource and RemoveFontResource return zero for them.
+fn font_path_unavailable(code: dos_kernel::DosErrorCode) -> bool {
+    matches!(
+        code,
+        dos_kernel::DosErrorCode::FileNotFound
+            | dos_kernel::DosErrorCode::PathNotFound
+            | dos_kernel::DosErrorCode::InvalidData
+            | dos_kernel::DosErrorCode::UnknownUnit
+            | dos_kernel::DosErrorCode::NoMoreFiles
+            | dos_kernel::DosErrorCode::AccessDenied
+    )
+}
+
+fn font_metadata_unavailable(error: &io::Error) -> bool {
+    matches!(
+        error.kind(),
+        io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+    ) || error.raw_os_error() == Some(5)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::font_metadata_unavailable;
+    use super::font_path_unavailable;
+
+    #[test]
+    fn access_denied_font_candidate_is_a_load_miss() {
+        assert!(font_path_unavailable(dos_kernel::DosErrorCode::AccessDenied));
+        assert!(font_path_unavailable(dos_kernel::DosErrorCode::FileNotFound));
+        assert!(!font_path_unavailable(dos_kernel::DosErrorCode::GeneralFailure));
+        let denied = std::io::Error::from_raw_os_error(5);
+        assert!(font_metadata_unavailable(&denied));
+        assert!(font_metadata_unavailable(&std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "font file",
+        )));
+        assert!(!font_metadata_unavailable(&std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "font file",
+        )));
+    }
+}
+
 fn task_file_error(error: io::Error, operation: &'static str) -> CandidateError {
     match error.raw_os_error() {
         Some(code) => classify_candidate_path_error(code as u32, operation),

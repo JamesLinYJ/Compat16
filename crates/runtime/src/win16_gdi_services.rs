@@ -69,8 +69,9 @@ impl Win16State {
         use ResultValue as Value;
 
         match request {
-            request @ Req::GetGlyphOutline { .. } =>
-                self.execute_glyph_outline(request, memory, host),
+            request @ Req::GetGlyphOutline { .. } => {
+                self.execute_glyph_outline(request, memory, host)
+            }
             Req::SetBoundsRect { dc, rect, flags } => {
                 let Some(dc) = self.guest_gdi.dc(dc) else {
                     return Ok(0);
@@ -184,7 +185,14 @@ impl Win16State {
                 let Some(guest_path) = self.guest_font_resource_path(&input) else {
                     return Ok(0);
                 };
-                match host.win16_gdi_services(Operation::AddFontResource { guest_path })? {
+                let Some(task_path) = self.font_library_task_path(host, &guest_path)? else {
+                    return Ok(0);
+                };
+                match host.win16_gdi_services(Operation::AddFontResource {
+                    guest_path,
+                    application_path: self.module_path.clone(),
+                    task_path,
+                })? {
                     Value::FontResourceCount(count) => Ok(u32::from(count as u16)),
                     _ => Err(wrong_result("AddFontResource")),
                 }
@@ -193,7 +201,14 @@ impl Win16State {
                 let Some(guest_path) = self.guest_font_resource_path(&input) else {
                     return Ok(0);
                 };
-                match host.win16_gdi_services(Operation::RemoveFontResource { guest_path })? {
+                let Some(task_path) = self.font_library_task_path(host, &guest_path)? else {
+                    return Ok(0);
+                };
+                match host.win16_gdi_services(Operation::RemoveFontResource {
+                    guest_path,
+                    application_path: self.module_path.clone(),
+                    task_path,
+                })? {
                     Value::Bool(removed) => Ok(u32::from(removed)),
                     _ => Err(wrong_result("RemoveFontResource")),
                 }
@@ -236,7 +251,12 @@ impl Win16State {
                     _ => Err(wrong_result("CreateScalableFontResource")),
                 }
             }
-            Req::GetCharWidth { dc, first, last, output } => {
+            Req::GetCharWidth {
+                dc,
+                first,
+                last,
+                output,
+            } => {
                 if output == 0 || first > last {
                     return Ok(0);
                 }
@@ -258,7 +278,10 @@ impl Win16State {
                 let target = preflight_guest_output(&self.selectors, memory, output, byte_count)?;
                 match host.win16_gdi_services(Operation::GetCharWidth { dc, first, last })? {
                     Value::CharWidths { success: false, .. } => Ok(0),
-                    Value::CharWidths { success: true, entries } if entries.len() == count => {
+                    Value::CharWidths {
+                        success: true,
+                        entries,
+                    } if entries.len() == count => {
                         let Some(bytes) = encode_char_widths(&entries) else {
                             return Ok(0);
                         };
@@ -438,6 +461,51 @@ impl Win16State {
                     _ => Err(wrong_result("IsGDIObject")),
                 }
             }
+        }
+    }
+
+    /// First LoadLibrary candidate: the task directory, or the caller's path
+    /// when it already contains a directory. No `.DLL` suffix is added; a
+    /// font file must already name its extension.
+    fn font_library_task_path(
+        &self,
+        host: &impl RuntimeHost,
+        name: &[u8],
+    ) -> Result<Option<crate::Win16GuestPath>, RuntimeError> {
+        if name.is_empty() {
+            return Ok(None);
+        }
+        let text = match host.decode_win16_ansi(name) {
+            Ok(text) => text,
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    DiagnosticKind::InvalidInput | DiagnosticKind::GuestFault
+                ) =>
+            {
+                return Ok(None);
+            }
+            Err(error) => return Err(error),
+        };
+        let leaf = text.rsplit(['\\', '/', ':']).next().unwrap_or("");
+        if leaf.is_empty() || text.contains('\0') {
+            return Ok(None);
+        }
+        match self.kernel_file_system.resolve_guest_path_text(
+            self.current_task_owner()?,
+            &text,
+            false,
+        ) {
+            Ok(path) => Ok(Some(path)),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    DiagnosticKind::InvalidInput | DiagnosticKind::GuestFault
+                ) =>
+            {
+                Ok(None)
+            }
+            Err(error) => Err(error),
         }
     }
 

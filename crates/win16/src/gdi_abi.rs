@@ -40,14 +40,15 @@ pub const BITMAP16_SIZE: usize = 14;
 
 /// `ExtTextOut` flag values whose pointer effects are interpreted by its
 /// decoder. Other incoming option bits are retained without whitelisting.
-/// The rectangle values follow the Windows 3.1 GDI `ExtTextOut` contract;
-/// Microsoft documents paired `lpDx` values for `ETO_PDY` in the GDI API.
+/// The rectangle values follow the Windows 3.1 GDI `ExtTextOut` contract.
+/// `ETO_PDY` selects the spacing array. This Win16 export reads one signed
+/// INT per string byte, the ANSI length documented by Learn.
 pub const ETO_OPAQUE: u16 = 0x0002;
 pub const ETO_CLIPPED: u16 = 0x0004;
 pub const ETO_PDY: u16 = 0x2000;
 pub const ETO_RECT_FLAGS: u16 = ETO_OPAQUE | ETO_CLIPPED;
 
-// Source for the paired displacement array semantics of ETO_PDY:
+// ANSI `lpDx` length is one INT per byte, including when `ETO_PDY` is set:
 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-exttextouta
 
 /// Pointer-free Win16 `LOGPEN` copied from a guest structure.

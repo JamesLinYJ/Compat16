@@ -21,6 +21,7 @@ use windows_sys::Win32::System::SystemInformation::{GetSystemDirectoryW, GetWind
 #[path = "win16_module_files_path.rs"]
 mod path;
 mod task;
+pub(crate) use task::locate_library_file;
 pub(crate) use task::read_module as read_task_module;
 
 /// Resource bound for one guest module image. Exceeding it reports the
@@ -269,10 +270,10 @@ fn search_path_components(
     })
 }
 
-fn search_path_with(
+fn search_path_with<T>(
     path: &OsStr,
-    mut search: impl FnMut(&[u16]) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError>,
-) -> Result<Option<Result<Win16ModuleImage, u16>>, RuntimeError> {
+    mut search: impl FnMut(&[u16]) -> Result<Option<T>, RuntimeError>,
+) -> Result<Option<T>, RuntimeError> {
     let mut component = Vec::new();
     let mut component_too_long = false;
     for unit in path.encode_wide().chain(std::iter::once(b';' as u16)) {

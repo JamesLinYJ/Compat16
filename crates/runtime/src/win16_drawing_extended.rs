@@ -169,7 +169,7 @@ impl Win16State {
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::GetWindowOrgEx {
                 dc,
                 output,
-            }) => self.get_origin_ex(memory, host, dc, output, false),
+            }) => self.get_origin_ex(memory, host, dc, output, true),
             Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::SetWindowOrgEx {
                 dc,
                 x,
@@ -186,12 +186,7 @@ impl Win16State {
                     y: i32::from(y),
                 })? {
                     HostResult::BoolPoint { success, point } => {
-                        if success {
-                            if let Some(output) = output {
-                                self.write_drawing_point(memory, output, point)?;
-                            }
-                        }
-                        Ok(u32::from(u16::from(success)))
+                        self.commit_mapping_point(memory, output, success, point)
                     }
                     _ => Err(wrong_result("SetWindowOrgEx")),
                 }
@@ -269,12 +264,7 @@ impl Win16State {
                 success,
                 width,
                 height,
-            } => {
-                if success {
-                    self.write_drawing_size(memory, output, width, height)?;
-                }
-                Ok(u32::from(u16::from(success)))
-            }
+            } => self.commit_mapping_size(memory, Some(output), success, width, height),
             _ => Err(wrong_result("GetWindowExtEx/GetViewportExtEx")),
         }
     }
@@ -298,10 +288,7 @@ impl Win16State {
         };
         match host.win16_gdi(operation)? {
             HostResult::BoolPoint { success, point } => {
-                if success {
-                    self.write_drawing_point(memory, output, point)?;
-                }
-                Ok(u32::from(u16::from(success)))
+                self.commit_mapping_point(memory, Some(output), success, point)
             }
             _ => Err(wrong_result("GetWindowOrgEx/GetViewportOrgEx")),
         }
@@ -336,12 +323,7 @@ impl Win16State {
         };
         match host.win16_gdi(operation)? {
             HostResult::BoolPoint { success, point } => {
-                if success {
-                    if let Some(output) = output {
-                        self.write_drawing_point(memory, output, point)?;
-                    }
-                }
-                Ok(u32::from(u16::from(success)))
+                self.commit_mapping_point(memory, output, success, point)
             }
             _ => Err(wrong_result("OffsetWindowOrgEx/OffsetViewportOrgEx")),
         }
@@ -391,14 +373,7 @@ impl Win16State {
                 success,
                 width,
                 height,
-            } => {
-                if success {
-                    if let Some(output) = output {
-                        self.write_drawing_size(memory, output, width, height)?;
-                    }
-                }
-                Ok(u32::from(u16::from(success)))
-            }
+            } => self.commit_mapping_size(memory, output, success, width, height),
             _ => Err(wrong_result("ScaleWindowExtEx/ScaleViewportExtEx")),
         }
     }

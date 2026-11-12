@@ -57,9 +57,32 @@ impl Win16State {
             output: info.output,
         })? {
             HostResult::Count(value) => {
-                let status = value as u16 as u32;
+                let status = spool_status(value);
                 if positive_spool_status(status) {
                     self.guest_gdi.set_print_document_open(guest_dc, true);
+                    return Ok(status);
+                }
+                // StartDoc succeeds with a job id greater than zero and opens
+                // the native document. A positive id outside a signed 16-bit
+                // int cannot be returned, so the job is aborted before
+                // `SP_ERROR`. Leaving `print_document_open` false would hide
+                // that open job from a later AbortDoc.
+                // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-startdocw
+                // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-abortdoc
+                if value > i32::from(i16::MAX) {
+                    match host.win16_gdi_device(Operation::Print {
+                        operation: Win16PrintOperation::AbortDocument,
+                        dc,
+                    })? {
+                        HostResult::Count(abort_status) if abort_status > 0 => {}
+                        HostResult::Count(_) => {
+                            return Err(RuntimeError::new(
+                                Kind::HostFailure,
+                                "Win16 StartDoc could not abort a job id outside the signed int range",
+                            ));
+                        }
+                        _ => return Err(wrong_device_result("AbortDoc")),
+                    }
                 }
                 Ok(status)
             }
@@ -97,7 +120,7 @@ impl Win16State {
         };
         match host.win16_gdi_device(Operation::Print { operation, dc })? {
             HostResult::Count(value) => {
-                let status = value as u16 as u32;
+                let status = spool_status(value);
                 if positive_spool_status(status)
                     && matches!(
                         operation,
@@ -110,6 +133,16 @@ impl Win16State {
             }
             _ => Err(wrong_device_result("print lifecycle")),
         }
+    }
+}
+
+/// StartDoc, EndDoc, StartPage, EndPage, and AbortDoc return a signed int.
+/// `SP_ERROR` is -1. A host count outside that int is the same failure and
+/// is not wrapped into a positive job id.
+fn spool_status(value: i32) -> u32 {
+    match i16::try_from(value) {
+        Ok(status) => u32::from(status as u16),
+        Err(_) => SP_ERROR16,
     }
 }
 
