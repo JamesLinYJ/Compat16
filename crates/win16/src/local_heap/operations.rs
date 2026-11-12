@@ -192,14 +192,17 @@ impl LocalHeap<'_> {
         fixed: bool,
         movable_slot: Option<HandleSlot>,
     ) -> Result<u16, LocalHeapError> {
-        // Windows 3.1 LocalReAlloc discards only an unlocked movable
-        // discardable object when the new size is zero and LMEM_MOVEABLE is
-        // set. LocalDiscard is that call. A fixed block, a non-discardable
-        // block, a locked block, or a request without LMEM_MOVEABLE fails
-        // and leaves the original object allocated.
-        let discardable = (LMEM_DISCARDABLE >> 8) as u8;
-        if fixed || flags & LMEM_MOVEABLE == 0 {
+        // Programmer's Reference, Vol. 2, p. 596: a zero new size with
+        // LMEM_MOVEABLE frees a fixed object, or discards a movable object
+        // whose lock count is zero. LocalDiscard is that call. The movable
+        // object does not also have to be discardable. A locked movable
+        // object, or a request without LMEM_MOVEABLE, fails and leaves the
+        // original object allocated.
+        if flags & LMEM_MOVEABLE == 0 {
             return Ok(0);
+        }
+        if fixed {
+            return self.free_inner(handle);
         }
         match movable_slot {
             Some(HandleSlot::Unused) | None => Ok(0),
@@ -211,7 +214,7 @@ impl LocalHeap<'_> {
                 Ok(handle)
             }
             Some(HandleSlot::Live(mut entry)) => {
-                if entry.lock != 0 || entry.flags & discardable == 0 {
+                if entry.lock != 0 {
                     return Ok(0);
                 }
                 let start = entry.addr - (ARENA_HEADER_BYTES + MOVEABLE_PREFIX_BYTES) as u16;

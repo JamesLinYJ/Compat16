@@ -868,7 +868,7 @@ impl RuntimeHost for WindowsHost {
         &mut self,
         dc: Win16HostDc,
         face: Option<&[u8]>,
-    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
         runtime_host_gdi::enum_fonts(self, dc, face)
     }
 
@@ -876,8 +876,19 @@ impl RuntimeHost for WindowsHost {
         &mut self,
         dc: Win16HostDc,
         face: Option<&[u8]>,
-    ) -> Result<Vec<Win16HostFontRecord>, RuntimeError> {
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
         runtime_host_gdi::enum_font_families(self, dc, face)
+    }
+
+    fn win16_enum_font_families_ex(
+        &mut self,
+        dc: Win16HostDc,
+        face: &[u8],
+        charset: u8,
+        pitch_and_family: u8,
+        flags: u32,
+    ) -> Result<Option<Vec<Win16HostFontRecord>>, RuntimeError> {
+        runtime_host_gdi::enum_font_families_ex(self, dc, face, charset, pitch_and_family, flags)
     }
     fn win16_get_stock_object(
         &mut self,
@@ -1120,7 +1131,14 @@ impl RuntimeHost for WindowsHost {
     }
     fn win16_get_key_state(&mut self, key: i32, asynchronous: bool) -> Result<i16, RuntimeError> {
         if asynchronous {
-            Ok(win16_common::get_async_key_state(key))
+            // GetAsyncKeyState reports one of the 256 virtual keys at the
+            // call. A code Appendix B leaves undefined has no 3.1 key, so the
+            // signed word is 0 rather than a later host key.
+            if runtime::win31_virtual_key(key) {
+                Ok(win16_common::get_async_key_state(key))
+            } else {
+                Ok(0)
+            }
         } else {
             self.win16_windows.get_key_state(key)
         }

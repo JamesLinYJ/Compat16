@@ -44,11 +44,18 @@ const CALLBACK_FLAGS: u32 = 0x0007_0000;
 pub(super) fn device_count(direction: Direction) -> Result<ResultValue, RuntimeError> {
     // Win16 and the host expose a WORD/UINT device count respectively; the
     // runtime checks the projection before it writes a guest-visible value.
-    // SAFETY: midiInGetNumDevs takes no pointers. midiOutGetNumDevs takes no pointers.
-    let count = unsafe {
-        match direction {
-            Direction::Input => midiInGetNumDevs(),
-            Direction::Output => midiOutGetNumDevs(),
+    let count = match direction {
+        Direction::Input => {
+            // SAFETY: midiInGetNumDevs takes no arguments and does not
+            // dereference a pointer. It returns the host device count. No
+            // guest address is involved.
+            unsafe { midiInGetNumDevs() }
+        }
+        Direction::Output => {
+            // SAFETY: midiOutGetNumDevs takes no arguments and does not
+            // dereference a pointer. It returns the host device count. No
+            // guest address is involved.
+            unsafe { midiOutGetNumDevs() }
         }
     };
     Ok(ResultValue::Scalar(count))
@@ -63,22 +70,41 @@ pub(super) fn get_caps(
     match direction {
         Direction::Input => {
             let mut native = MIDIINCAPSW::default();
-            // SAFETY: midiInGetDevCapsW writes a caller-owned capabilities record.
-            let result = unsafe {
-                midiInGetDevCapsW(native_id, &mut native, size_of::<MIDIINCAPSW>() as u32)
-            };
+            let caps_size = size_of::<MIDIINCAPSW>() as u32;
+            // SAFETY: `native` is a local writable `MIDIINCAPSW` that stays
+            // live, and `caps_size` is its size. `native_id` is a numeric
+            // device identifier, not a host pointer. midiInGetDevCapsW writes
+            // that record and retains no pointer. The record is a host
+            // address, not a guest address.
+            let result = unsafe { midiInGetDevCapsW(native_id, &mut native, caps_size) };
             if result != 0 {
                 return Ok(ResultValue::Caps { result, caps: None });
             }
             // MIDIINCAPSW is packed by windows-sys; read fields unaligned.
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let manufacturer = unsafe { ptr::addr_of!(native.wMid).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let product = unsafe { ptr::addr_of!(native.wPid).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let raw_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let name = unsafe { ptr::addr_of!(native.szPname).read_unaligned() };
+            let manufacturer_field = ptr::addr_of!(native.wMid);
+            // SAFETY: `manufacturer_field` addresses the packed `wMid` field of
+            // this caller-owned `MIDIINCAPSW`. The record stays live for the
+            // read and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let manufacturer = unsafe { manufacturer_field.read_unaligned() };
+            let product_field = ptr::addr_of!(native.wPid);
+            // SAFETY: `product_field` addresses the packed `wPid` field of this
+            // caller-owned `MIDIINCAPSW`. The record stays live for the read
+            // and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let product = unsafe { product_field.read_unaligned() };
+            let version_field = ptr::addr_of!(native.vDriverVersion);
+            // SAFETY: `version_field` addresses the packed `vDriverVersion`
+            // field of this caller-owned `MIDIINCAPSW`. The record stays live
+            // for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u32` and does not retain the pointer.
+            let raw_version = unsafe { version_field.read_unaligned() };
+            let name_field = ptr::addr_of!(native.szPname);
+            // SAFETY: `name_field` addresses the packed `szPname` array of this
+            // caller-owned `MIDIINCAPSW`. The record stays live for the read
+            // and is a host address, not a guest address. `read_unaligned`
+            // copies the array and does not retain the pointer.
+            let name = unsafe { name_field.read_unaligned() };
             // Win32 MIDIINCAPSW.dwSupport is reserved and is not part of the
             // 38-byte Windows 3.1 MIDIINCAPS record, so it is not projected.
             let version = u16::try_from(raw_version).map_err(|error| {
@@ -100,32 +126,71 @@ pub(super) fn get_caps(
         }
         Direction::Output => {
             let mut native = MIDIOUTCAPSW::default();
-            // SAFETY: midiOutGetDevCapsW writes a caller-owned capabilities record.
-            let result = unsafe {
-                midiOutGetDevCapsW(native_id, &mut native, size_of::<MIDIOUTCAPSW>() as u32)
-            };
+            let caps_size = size_of::<MIDIOUTCAPSW>() as u32;
+            // SAFETY: `native` is a local writable `MIDIOUTCAPSW` that stays
+            // live, and `caps_size` is its size. `native_id` is a numeric
+            // device identifier, not a host pointer. midiOutGetDevCapsW writes
+            // that record and retains no pointer. The record is a host
+            // address, not a guest address.
+            let result = unsafe { midiOutGetDevCapsW(native_id, &mut native, caps_size) };
             if result != 0 {
                 return Ok(ResultValue::Caps { result, caps: None });
             }
             // MIDIOUTCAPSW is packed by windows-sys; read fields unaligned.
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let manufacturer = unsafe { ptr::addr_of!(native.wMid).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let product = unsafe { ptr::addr_of!(native.wPid).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let raw_version = unsafe { ptr::addr_of!(native.vDriverVersion).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let name = unsafe { ptr::addr_of!(native.szPname).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let technology = unsafe { ptr::addr_of!(native.wTechnology).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let voices = unsafe { ptr::addr_of!(native.wVoices).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let notes = unsafe { ptr::addr_of!(native.wNotes).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let channel_mask = unsafe { ptr::addr_of!(native.wChannelMask).read_unaligned() };
-            // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-            let support = unsafe { ptr::addr_of!(native.dwSupport).read_unaligned() };
+            let manufacturer_field = ptr::addr_of!(native.wMid);
+            // SAFETY: `manufacturer_field` addresses the packed `wMid` field of
+            // this caller-owned `MIDIOUTCAPSW`. The record stays live for the
+            // read and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let manufacturer = unsafe { manufacturer_field.read_unaligned() };
+            let product_field = ptr::addr_of!(native.wPid);
+            // SAFETY: `product_field` addresses the packed `wPid` field of this
+            // caller-owned `MIDIOUTCAPSW`. The record stays live for the read
+            // and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let product = unsafe { product_field.read_unaligned() };
+            let version_field = ptr::addr_of!(native.vDriverVersion);
+            // SAFETY: `version_field` addresses the packed `vDriverVersion`
+            // field of this caller-owned `MIDIOUTCAPSW`. The record stays live
+            // for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u32` and does not retain the pointer.
+            let raw_version = unsafe { version_field.read_unaligned() };
+            let name_field = ptr::addr_of!(native.szPname);
+            // SAFETY: `name_field` addresses the packed `szPname` array of this
+            // caller-owned `MIDIOUTCAPSW`. The record stays live for the read
+            // and is a host address, not a guest address. `read_unaligned`
+            // copies the array and does not retain the pointer.
+            let name = unsafe { name_field.read_unaligned() };
+            let technology_field = ptr::addr_of!(native.wTechnology);
+            // SAFETY: `technology_field` addresses the packed `wTechnology`
+            // field of this caller-owned `MIDIOUTCAPSW`. The record stays live
+            // for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u16` and does not retain the pointer.
+            let technology = unsafe { technology_field.read_unaligned() };
+            let voices_field = ptr::addr_of!(native.wVoices);
+            // SAFETY: `voices_field` addresses the packed `wVoices` field of
+            // this caller-owned `MIDIOUTCAPSW`. The record stays live for the
+            // read and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let voices = unsafe { voices_field.read_unaligned() };
+            let notes_field = ptr::addr_of!(native.wNotes);
+            // SAFETY: `notes_field` addresses the packed `wNotes` field of this
+            // caller-owned `MIDIOUTCAPSW`. The record stays live for the read
+            // and is a host address, not a guest address. `read_unaligned`
+            // copies the `u16` and does not retain the pointer.
+            let notes = unsafe { notes_field.read_unaligned() };
+            let channel_mask_field = ptr::addr_of!(native.wChannelMask);
+            // SAFETY: `channel_mask_field` addresses the packed `wChannelMask`
+            // field of this caller-owned `MIDIOUTCAPSW`. The record stays live
+            // for the read and is a host address, not a guest address.
+            // `read_unaligned` copies the `u16` and does not retain the pointer.
+            let channel_mask = unsafe { channel_mask_field.read_unaligned() };
+            let support_field = ptr::addr_of!(native.dwSupport);
+            // SAFETY: `support_field` addresses the packed `dwSupport` field of
+            // this caller-owned `MIDIOUTCAPSW`. The record stays live for the
+            // read and is a host address, not a guest address. `read_unaligned`
+            // copies the `u32` and does not retain the pointer.
+            let support = unsafe { support_field.read_unaligned() };
             let version = u16::try_from(raw_version).map_err(|error| {
                 RuntimeError::with_source(
                     Kind::CompatibilityGap,
@@ -183,11 +248,24 @@ pub(super) fn get_error_text(
     } else {
         wide.as_mut_ptr()
     };
-    // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-    let result = unsafe {
-        match direction {
-            Direction::Input => midiInGetErrorTextW(u32::from(error), pointer, capacity as u32),
-            Direction::Output => midiOutGetErrorTextW(u32::from(error), pointer, capacity as u32),
+    let text_capacity = capacity as u32;
+    let error_code = u32::from(error);
+    let result = match direction {
+        Direction::Input => {
+            // SAFETY: `pointer` is null only when `capacity` is zero. Otherwise
+            // it addresses `capacity` writable UTF-16 units in the owned `wide`
+            // buffer, and that buffer stays live for this call.
+            // midiInGetErrorTextW writes those units and returns an MMRESULT.
+            // The pointer is a host address, not a guest address.
+            unsafe { midiInGetErrorTextW(error_code, pointer, text_capacity) }
+        }
+        Direction::Output => {
+            // SAFETY: `pointer` is null only when `capacity` is zero. Otherwise
+            // it addresses `capacity` writable UTF-16 units in the owned `wide`
+            // buffer, and that buffer stays live for this call.
+            // midiOutGetErrorTextW writes those units and returns an MMRESULT.
+            // The pointer is a host address, not a guest address.
+            unsafe { midiOutGetErrorTextW(error_code, pointer, text_capacity) }
         }
     };
     if result != 0 {
@@ -263,7 +341,11 @@ impl Win16MidiHost {
         let (result, handle) = match native_direction {
             MidiDirection::Input => {
                 let mut output: HMIDIIN = std::ptr::null_mut();
-                // SAFETY: midiInOpen writes a caller-owned handle.
+                // SAFETY: `output` is a local `HMIDIIN` that stays live.
+                // midiInOpen writes that handle and retains no pointer.
+                // `callback` is this host's procedure and `context_id` is a
+                // host callback scalar. The device identifier is numeric. None
+                // of these values is a guest address.
                 let result = unsafe {
                     midiInOpen(
                         &mut output,
@@ -280,7 +362,11 @@ impl Win16MidiHost {
             }
             MidiDirection::Output => {
                 let mut output: HMIDIOUT = std::ptr::null_mut();
-                // SAFETY: midiOutOpen writes a caller-owned handle.
+                // SAFETY: `output` is a local `HMIDIOUT` that stays live.
+                // midiOutOpen writes that handle and retains no pointer.
+                // `callback` is this host's procedure and `context_id` is a
+                // host callback scalar. The device identifier is numeric. None
+                // of these values is a guest address.
                 let result = unsafe {
                     midiOutOpen(
                         &mut output,
@@ -491,15 +577,23 @@ impl Win16MidiHost {
             }
             let header_token = self.headers[index].token;
             let pointer = &mut self.headers[index].storage[0].header as *mut MIDIHDR;
-            // SAFETY: `Input`, `Output` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-            let result = unsafe {
-                match native {
-                    NativeMidiHandle::Input(handle) => {
-                        midiInUnprepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                    }
-                    NativeMidiHandle::Output(handle) => {
-                        midiOutUnprepareHeader(handle, pointer, size_of::<MIDIHDR>() as u32)
-                    }
+            let header_size = size_of::<MIDIHDR>() as u32;
+            let result = match native {
+                NativeMidiHandle::Input(handle) => {
+                    // SAFETY: `handle` is the caller's live `HMIDIIN`, and
+                    // `pointer` addresses the owned `MIDIHDR` in this header's
+                    // storage, which stays live. midiInUnprepareHeader uses
+                    // that header and retains no pointer. Both values are host
+                    // addresses, not guest addresses.
+                    unsafe { midiInUnprepareHeader(handle, pointer, header_size) }
+                }
+                NativeMidiHandle::Output(handle) => {
+                    // SAFETY: `handle` is the caller's live `HMIDIOUT`, and
+                    // `pointer` addresses the owned `MIDIHDR` in this header's
+                    // storage, which stays live. midiOutUnprepareHeader uses
+                    // that header and retains no pointer. Both values are host
+                    // addresses, not guest addresses.
+                    unsafe { midiOutUnprepareHeader(handle, pointer, header_size) }
                 }
             };
             if result != 0 {
@@ -588,11 +682,20 @@ impl Win16MidiHost {
             });
         };
         let mut device_id = 0u32;
-        // SAFETY: `Input`, `Output` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-        let result = unsafe {
-            match device.native {
-                NativeMidiHandle::Input(handle) => midiInGetID(handle, &mut device_id),
-                NativeMidiHandle::Output(handle) => midiOutGetID(handle, &mut device_id),
+        let result = match device.native {
+            NativeMidiHandle::Input(handle) => {
+                // SAFETY: `handle` is the caller's live `HMIDIIN`, and
+                // `device_id` is a local DWORD that stays live. midiInGetID
+                // writes that DWORD and retains no pointer. The handle is a
+                // host value, not a guest address.
+                unsafe { midiInGetID(handle, &mut device_id) }
+            }
+            NativeMidiHandle::Output(handle) => {
+                // SAFETY: `handle` is the caller's live `HMIDIOUT`, and
+                // `device_id` is a local DWORD that stays live. midiOutGetID
+                // writes that DWORD and retains no pointer. The handle is a
+                // host value, not a guest address.
+                unsafe { midiOutGetID(handle, &mut device_id) }
             }
         };
         Ok(ResultValue::DeviceId {
@@ -628,7 +731,10 @@ impl Win16MidiHost {
         };
         let mut mixer_id = 0u32;
         let flags = (MIXER_OBJECTF_HANDLE | object_flag) as u32;
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
+        // SAFETY: `native` is the caller's live MIDI handle cast to
+        // `HMIXEROBJ`, and `mixer_id` is a local DWORD that stays live.
+        // mixerGetID writes that DWORD and retains no pointer. Neither value
+        // is a guest address.
         let result = unsafe { mixerGetID(native, &mut mixer_id, flags) };
         Win16HostMidiMixerId {
             result,
@@ -904,7 +1010,9 @@ impl Win16MidiHost {
         let NativeMidiHandle::Output(handle) = device.native else {
             return Ok(invalid_device());
         };
-        // SAFETY: midiOutShortMsg sends an integer message.
+        // SAFETY: `handle` is the caller's live `HMIDIOUT`. midiOutShortMsg
+        // takes that handle and `message` by value and retains no pointer.
+        // The handle is a host value, not a guest address.
         Ok(ResultValue::Scalar(unsafe {
             midiOutShortMsg(handle, message)
         }))
@@ -921,7 +1029,9 @@ impl Win16MidiHost {
         let NativeMidiHandle::Output(handle) = device.native else {
             return Ok(invalid_device());
         };
-        // SAFETY: midiOutReset resets a handle this owner opened.
+        // SAFETY: `handle` is the caller's live `HMIDIOUT`. midiOutReset takes
+        // that handle by value and retains no pointer. The handle is a host
+        // value, not a guest address.
         Ok(ResultValue::Scalar(unsafe { midiOutReset(handle) }))
     }
 
@@ -940,12 +1050,24 @@ impl Win16MidiHost {
         let NativeMidiHandle::Input(handle) = device.native else {
             return Ok(invalid_device());
         };
-        // SAFETY: midiInStart starts a handle this owner opened. midiInStop stops a handle this owner opened. midiInReset resets a handle this owner opened.
-        let result = unsafe {
-            match command {
-                InputControl::Start => midiInStart(handle),
-                InputControl::Stop => midiInStop(handle),
-                InputControl::Reset => midiInReset(handle),
+        let result = match command {
+            InputControl::Start => {
+                // SAFETY: `handle` is the caller's live `HMIDIIN`. midiInStart
+                // takes that handle by value and retains no pointer. The
+                // handle is a host value, not a guest address.
+                unsafe { midiInStart(handle) }
+            }
+            InputControl::Stop => {
+                // SAFETY: `handle` is the caller's live `HMIDIIN`. midiInStop
+                // takes that handle by value and retains no pointer. The
+                // handle is a host value, not a guest address.
+                unsafe { midiInStop(handle) }
+            }
+            InputControl::Reset => {
+                // SAFETY: `handle` is the caller's live `HMIDIIN`. midiInReset
+                // takes that handle by value and retains no pointer. The
+                // handle is a host value, not a guest address.
+                unsafe { midiInReset(handle) }
             }
         };
         Ok(ResultValue::Scalar(result))
@@ -961,7 +1083,10 @@ impl Win16MidiHost {
         // as UINT32_MAX before the host pointer-width carrier conversion.
         let native_id = native_device_id_u32(device_id) as usize as HMIDIOUT;
         let mut value = 0u32;
-        // SAFETY: midiOutGetVolume writes a caller-owned DWORD.
+        // SAFETY: `native_id` is this function's numeric device identifier,
+        // including `MIDI_MAPPER` as `u32::MAX`, carried in the `HMIDIOUT`
+        // slot. midiOutGetVolume writes one DWORD to the local `value` and
+        // retains no pointer. The identifier is not a guest address.
         let result = unsafe { midiOutGetVolume(native_id, &mut value) };
         Ok(ResultValue::Volume {
             result,
@@ -978,7 +1103,10 @@ impl Win16MidiHost {
         // device ID, including MIDI_MAPPER == UINT32_MAX, not an HMIDIOUT
         // opened for the guest.
         let native_id = native_device_id_u32(device_id) as usize as HMIDIOUT;
-        // SAFETY: midiOutSetVolume takes an integer volume.
+        // SAFETY: `native_id` is this function's numeric device identifier,
+        // including `MIDI_MAPPER` as `u32::MAX`, carried in the `HMIDIOUT`
+        // slot. midiOutSetVolume takes that identifier and `value` by value
+        // and retains no pointer. The identifier is not a guest address.
         let result = unsafe { midiOutSetVolume(native_id, value) };
         Ok(ResultValue::Scalar(result))
     }
@@ -1013,16 +1141,26 @@ impl Win16MidiHost {
                 "Win16 MIDI cache operation did not carry 128 entries",
             ));
         }
-        // SAFETY: The pointers in this block are caller-owned host addresses that stay live for the synchronous operation. They are not guest addresses.
-        let result = unsafe {
-            if drums {
+        let result = if drums {
+            // SAFETY: `handle` is the caller's live `HMIDIOUT`. `values` is
+            // the caller's 128-entry array and stays live for this call.
+            // midiOutCacheDrumPatches reads or writes those entries and
+            // retains no pointer. The pointer is a host address, not a guest
+            // address.
+            unsafe {
                 midiOutCacheDrumPatches(
                     handle,
                     u32::from(bank),
                     values.as_mut_ptr(),
                     u32::from(flags),
                 )
-            } else {
+            }
+        } else {
+            // SAFETY: `handle` is the caller's live `HMIDIOUT`. `values` is
+            // the caller's 128-entry array and stays live for this call.
+            // midiOutCachePatches reads or writes those entries and retains
+            // no pointer. The pointer is a host address, not a guest address.
+            unsafe {
                 midiOutCachePatches(
                     handle,
                     u32::from(bank),
@@ -1081,11 +1219,18 @@ fn close_native(handle: NativeMidiHandle) -> Result<(), RuntimeError> {
 }
 
 fn close_native_result(handle: NativeMidiHandle) -> u32 {
-    // SAFETY: `Input`, `midiInClose`, `Output` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    unsafe {
-        match handle {
-            NativeMidiHandle::Input(handle) => midiInClose(handle),
-            NativeMidiHandle::Output(handle) => midiOutClose(handle),
+    match handle {
+        NativeMidiHandle::Input(handle) => {
+            // SAFETY: `handle` is the caller's live `HMIDIIN`. midiInClose
+            // takes that handle by value and retains no pointer. The handle
+            // is a host value, not a guest address.
+            unsafe { midiInClose(handle) }
+        }
+        NativeMidiHandle::Output(handle) => {
+            // SAFETY: `handle` is the caller's live `HMIDIOUT`. midiOutClose
+            // takes that handle by value and retains no pointer. The handle
+            // is a host value, not a guest address.
+            unsafe { midiOutClose(handle) }
         }
     }
 }

@@ -702,18 +702,35 @@ impl Win16State {
         }
 
         let ansi_code_page = host.win16_ansi_code_page();
+        // MSDN: NULL means the root of the current disk, not the current
+        // directory. KB Q231497: a bare drive specification such as "C:" has
+        // no trailing backslash and fails on Windows 95. A path that is not a
+        // directory fails as well. None of those failures store the DWORDs.
         let path = match root_path {
+            Some(path) if bare_drive_specification(path) => return Ok(0),
             Some(path) => match self.resolve_ansi_path(owner, path, false, host) {
                 Ok(path) => Win16HostFileSystemPath::Guest(path),
                 Err(error) if guest_api_failure(&error) => return Ok(0),
                 Err(error) => return Err(error),
             },
-            None => Win16HostFileSystemPath::Canonical(
-                self.kernel_file_system
-                    .current_directory_canonical(owner)?
-                    .clone(),
-            ),
+            None => Win16HostFileSystemPath::Canonical(Win16CanonicalPath {
+                drive: self.kernel_file_system.current_drive(owner)?,
+                components: Vec::new(),
+            }),
         };
+        let directory = host.win16_file_system(Win16HostFileSystemCall {
+            owner,
+            ansi_code_page,
+            operation: Win16HostFileSystemOperation::QueryDirectory {
+                path: path.clone(),
+            },
+        })?;
+        let Win16HostFileSystemResult::Completed(is_directory) = directory else {
+            return Err(invariant("host directory query returned the wrong result"));
+        };
+        if !is_directory {
+            return Ok(0);
+        }
         let result = host.win16_file_system(Win16HostFileSystemCall {
             owner,
             ansi_code_page,
@@ -835,6 +852,12 @@ fn normalize_drive_directory(
     Ok(Some(directory))
 }
 
+/// A drive letter and colon with no following separator. "C:\" and "C:\dir"
+/// are not this form. Windows 95 GetDiskFreeSpace rejects the bare form.
+fn bare_drive_specification(path: &[u8]) -> bool {
+    path.len() == 2 && path[0].is_ascii_alphabetic() && path[1] == b':'
+}
+
 fn normalize_guest_path(
     owner: OwnerId,
     host: &mut impl RuntimeHost,
@@ -868,3 +891,7 @@ fn normalize_guest_path(
         )),
     }
 }
+
+#[cfg(test)]
+#[path = "win16_drive_volume_tests.rs"]
+mod drive_volume_tests;

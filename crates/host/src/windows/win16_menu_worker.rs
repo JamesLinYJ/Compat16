@@ -15,6 +15,7 @@ use runtime::{
     DiagnosticKind as Kind, RuntimeError, Win16HostGdiObject, Win16HostMenu, Win16HostRect,
     Win16HostWindow, Win16MenuOperation, Win16MenuResult, Win16MenuTemplate, Win16MenuTemplateItem,
 };
+use win16_abi::exports::menu_abi::{check_menu_item_state, enable_menu_item_state};
 use windows_sys::Win32::Foundation::{HWND, RECT};
 use windows_sys::Win32::Graphics::Gdi::HBITMAP;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -170,14 +171,14 @@ pub(super) fn execute(
             let previous = native_menu(state, menu).map_or(u32::MAX, |native| unsafe {
                 CheckMenuItem(native, u32::from(item), u32::from(flags))
             });
-            Ok(Win16MenuResult::ItemFlags(previous as u16))
+            Ok(Win16MenuResult::ItemFlags(check_menu_item_state(previous)))
         }
         Operation::EnableItem { menu, item, flags } => {
             // SAFETY: EnableMenuItem takes a menu handle and integer parameters.
             let previous = native_menu(state, menu).map_or(-1_i32, |native| unsafe {
                 EnableMenuItem(native, u32::from(item), u32::from(flags))
             });
-            Ok(Win16MenuResult::ItemFlags(previous as u16))
+            Ok(Win16MenuResult::ItemFlags(enable_menu_item_state(previous)))
         }
         Operation::HiliteItem {
             window,

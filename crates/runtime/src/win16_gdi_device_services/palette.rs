@@ -103,7 +103,11 @@ impl Win16State {
             Operation::RealizePalette { dc }
         };
         match host.win16_gdi_device(operation)? {
-            HostResult::Count(count) => Ok(count as u16 as u32),
+            // Windows 3.1 Programmer's Reference, Volume 2: the return is the
+            // number of logical entries mapped to different system entries.
+            // Its example treats zero as failure. Win32 GDI_ERROR is
+            // 0xFFFFFFFF and is not that count.
+            HostResult::Count(count) => Ok(fitting_palette_word(count)),
             _ => Err(wrong_device_result("RealizePalette")),
         }
     }
@@ -142,7 +146,12 @@ impl Win16State {
             PaletteTransferKind::Set => Win16PaletteTransferKind::Set,
             PaletteTransferKind::Animate => Win16PaletteTransferKind::Animate,
         };
-        let write = if kind == Win16PaletteTransferKind::Get && count != 0 {
+        // Learn GetSystemPaletteEntries, and the same GetPaletteEntries query:
+        // a null entry pointer returns the palette length and writes nothing.
+        // A zero count is that query even when the pointer is not null, so an
+        // unusable pointer must not fault and the caller's buffer stays put.
+        let size_query = kind == Win16PaletteTransferKind::Get && (count == 0 || output == 0);
+        let write = if kind == Win16PaletteTransferKind::Get && !size_query {
             let pointer = self
                 .selectors
                 .pointer_from_far(output)
@@ -159,7 +168,7 @@ impl Win16State {
             kind,
             palette,
             start,
-            count,
+            count: if size_query { 0 } else { count },
             entries,
         })?;
         match (kind, result) {
@@ -167,23 +176,41 @@ impl Win16State {
                 Win16PaletteTransferKind::Get,
                 HostResult::PaletteEntries {
                     count: copied,
+                    entries: _,
+                },
+            ) if size_query => Ok(fitting_palette_word(copied)),
+            (
+                Win16PaletteTransferKind::Get,
+                HostResult::PaletteEntries {
+                    count: copied,
                     entries,
                 },
             ) => {
-                if copied < 0 || copied > i32::from(count) || entries.len() < copied as usize {
-                    return Err(wrong_device_result("GetPaletteEntries"));
+                let copied =
+                    retrieved_palette_count(copied, entries.len(), count, "GetPaletteEntries")?;
+                // Windows 3.1 GetPaletteEntries: entries past the retrieved
+                // range are left unchanged, and failure writes nothing.
+                if copied > 0 {
+                    let bytes = encode_palette_entries(&entries[..copied])?;
+                    if let Some(write) = write {
+                        write.commit(memory, &bytes)?;
+                    }
                 }
-                let bytes = encode_palette_entries(&entries[..copied as usize])?;
-                if let Some(write) = write {
-                    write.commit(memory, &bytes)?;
-                }
-                Ok(copied as u16 as u32)
+                Ok(u32::from(copied as u16))
             }
             // Windows 3.1 declares AnimatePalette as void. The native Win32
             // binding returns a BOOL, but that host-only result is not part
             // of the guest API and must not leak through the 16-bit slot.
             (Win16PaletteTransferKind::Animate, HostResult::Count(_)) => Ok(0),
-            (Win16PaletteTransferKind::Set, HostResult::Count(result)) => Ok(result as u16 as u32),
+            // The return is the number of entries set, or zero on failure.
+            // A count outside the requested range is not that success value.
+            (Win16PaletteTransferKind::Set, HostResult::Count(result)) => {
+                Ok(if (0..=i32::from(count)).contains(&result) {
+                    u32::from(result as u16)
+                } else {
+                    0
+                })
+            }
             _ => Err(wrong_device_result("palette entry transfer")),
         }
     }
@@ -213,7 +240,9 @@ impl Win16State {
             return Ok(u16::MAX.into());
         };
         match host.win16_gdi_device(Operation::GetNearestPaletteIndex { palette, color })? {
-            HostResult::Count(index) => Ok(index as u16 as u32),
+            // Win32 returns CLR_INVALID (0xFFFFFFFF). The Win16 export is a
+            // UINT, so the guest word is the low half, 0xFFFF.
+            HostResult::Count(index) => Ok(u32::from(u16::try_from(index).unwrap_or(u16::MAX))),
             _ => Err(wrong_device_result("GetNearestPaletteIndex")),
         }
     }
@@ -273,23 +302,29 @@ impl Win16State {
         let Some(dc) = self.guest_gdi.dc(dc) else {
             return Ok(0);
         };
-        let capacity = usize::from(count).checked_mul(4).ok_or_else(|| {
-            RuntimeError::new(
-                Kind::InvalidInput,
-                "Win16 system palette output length overflowed",
-            )
-        })?;
-        let write = if capacity == 0 {
+        // Learn: a null PALETTEENTRY pointer returns the system-palette length
+        // and does not write. A zero count is the same query.
+        let size_query = count == 0 || output == 0;
+        let write = if size_query {
             None
         } else {
             let pointer = self
                 .selectors
                 .pointer_from_far(output)
                 .map_err(crate::runtime_error)?;
+            let capacity = usize::from(count).checked_mul(4).ok_or_else(|| {
+                RuntimeError::new(
+                    Kind::InvalidInput,
+                    "Win16 system palette output length overflowed",
+                )
+            })?;
             Some(self.prepare_text_write(memory, pointer, capacity)?)
         };
-        let result =
-            host.win16_gdi_device(Operation::GetSystemPaletteEntries { dc, start, count })?;
+        let result = host.win16_gdi_device(Operation::GetSystemPaletteEntries {
+            dc,
+            start,
+            count: if size_query { 0 } else { count },
+        })?;
         let HostResult::PaletteEntries {
             count: copied,
             entries,
@@ -297,14 +332,20 @@ impl Win16State {
         else {
             return Err(wrong_device_result("GetSystemPaletteEntries"));
         };
-        if copied < 0 || copied > i32::from(count) || entries.len() < copied as usize {
-            return Err(wrong_device_result("GetSystemPaletteEntries"));
+        if size_query {
+            return Ok(fitting_palette_word(copied));
         }
-        let bytes = encode_palette_entries(&entries[..copied as usize])?;
-        if let Some(write) = write {
-            write.commit(memory, &bytes)?;
+        let copied =
+            retrieved_palette_count(copied, entries.len(), count, "GetSystemPaletteEntries")?;
+        // Windows 3.1: failure is zero. Entries that were not retrieved stay
+        // as the caller left them.
+        if copied > 0 {
+            let bytes = encode_palette_entries(&entries[..copied])?;
+            if let Some(write) = write {
+                write.commit(memory, &bytes)?;
+            }
         }
-        Ok(copied as u16 as u32)
+        Ok(u32::from(copied as u16))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -370,6 +411,25 @@ impl Win16State {
         }
     }
 }
+/// Win16 palette counts are `UINT`. A negative host value is Win32
+/// `GDI_ERROR`, and any other value outside `0..=65535` cannot be returned
+/// in the 16-bit word. Both are the documented failure result, zero.
+fn fitting_palette_word(count: i32) -> u32 {
+    u16::try_from(count).map(u32::from).unwrap_or(0)
+}
+
+fn retrieved_palette_count(
+    copied: i32,
+    available: usize,
+    requested: u16,
+    name: &'static str,
+) -> Result<usize, RuntimeError> {
+    if copied < 0 || copied > i32::from(requested) || available < copied as usize {
+        return Err(wrong_device_result(name));
+    }
+    Ok(copied as usize)
+}
+
 fn palette_entries_to_host(entries: Vec<PaletteEntry16>) -> Result<Vec<[u8; 4]>, RuntimeError> {
     let mut result = Vec::new();
     result.try_reserve_exact(entries.len()).map_err(|error| {

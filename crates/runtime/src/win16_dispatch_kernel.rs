@@ -425,7 +425,17 @@ impl Win16State {
             },
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Runtime(
                 win16_abi::Win16KernelRuntimeRequest::GetDriveType { drive },
-            )) => u32::from(self.drive_type(drive, host)?),
+            )) => {
+                // KERNEL.136 takes the Win3.1 drive index (A: = 0). The SDK
+                // returns 0 when the type cannot be determined. An index
+                // outside A:..Z: is not a drive whose root is missing, so it
+                // must not be reported as DRIVE_NO_ROOT_DIR (1).
+                if drive > 25 {
+                    0
+                } else {
+                    u32::from(self.drive_type(drive, host)?)
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Modules(
                 win16_abi::Win16KernelModulesRequest::GetProcAddress { module, procedure },
             )) => {
@@ -635,23 +645,35 @@ impl Win16State {
                     default_value,
                     filename,
                 },
-            )) => host.win16_profile_int(
-                section.as_deref(),
-                key.as_deref(),
-                i32::from(default_value),
-                &self.private_profile_path(filename.as_deref(), host)?,
-            )?,
+            )) => {
+                if section.is_none() || key.is_none() {
+                    u32::from(default_value as u16)
+                } else {
+                    host.win16_profile_int(
+                        section.as_deref(),
+                        key.as_deref(),
+                        i32::from(default_value),
+                        &self.private_profile_path(filename.as_deref(), host)?,
+                    )?
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::GetProfileInt {
                     section,
                     key,
                     default_value,
                 },
-            )) => host.win16_system_profile_int(
-                section.as_deref(),
-                key.as_deref(),
-                i32::from(default_value),
-            )?,
+            )) => {
+                if section.is_none() || key.is_none() {
+                    u32::from(default_value as u16)
+                } else {
+                    host.win16_system_profile_int(
+                        section.as_deref(),
+                        key.as_deref(),
+                        i32::from(default_value),
+                    )?
+                }
+            }
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::GetPrivateProfileString {
                     section,
@@ -683,6 +705,21 @@ impl Win16State {
                 output_buffer,
                 memory,
                 host,
+            )?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::GetProfileSectionNames { output_buffer },
+            )) => self.profile_section_names(None, output_buffer, memory, host, true)?,
+            Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
+                win16_abi::Win16KernelProfilesRequest::GetPrivateProfileSectionNames {
+                    output_buffer,
+                    filename,
+                },
+            )) => self.profile_section_names(
+                filename.as_deref(),
+                output_buffer,
+                memory,
+                host,
+                false,
             )?,
             Win16ApiRequest::Kernel(win16_abi::Win16KernelRequest::Profiles(
                 win16_abi::Win16KernelProfilesRequest::WritePrivateProfileString {

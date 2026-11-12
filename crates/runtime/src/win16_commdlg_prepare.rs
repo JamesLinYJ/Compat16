@@ -26,15 +26,21 @@ const OFN_ENABLETEMPLATEHANDLE: u32 = 0x0000_0080;
 const OFN_VERIFIED_FLAGS: u32 = 0x0001_FFFF;
 // Windows 3.1 SDK COMMDLG error words. These are the published CDERR values
 // for a missing hook, instance, template, or named dialog resource.
+const CDERR_STRUCTSIZE: u32 = 0x0000_0001;
+const CDERR_INITIALIZATION: u32 = 0x0000_0002;
 const CDERR_NOTEMPLATE: u32 = 0x0000_0003;
 const CDERR_NOHINSTANCE: u32 = 0x0000_0004;
 const CDERR_FINDRESFAILURE: u32 = 0x0000_0006;
 const CDERR_NOHOOK: u32 = 0x0000_000B;
+const CDERR_DIALOGFAILURE: u32 = 0x0000_FFFF;
+const PDERR_RETDEFFAILURE: u32 = 0x0000_1003;
+const CFERR_MAXLESSTHANMIN: u32 = 0x0000_2002;
+const FRERR_BUFFERLENGTHZERO: u32 = 0x0000_4001;
 const RT_DIALOG: u16 = 5;
 
-/// Hook and template inputs shared by the common-dialog families. Later
-/// families can pass their own flag bits through this record. This slice
-/// calls it only for `OPENFILENAME`.
+/// Hook and template inputs shared by the common-dialog families.
+/// The hook value stays a guest procedure address. A decoded template is an
+/// owned byte layout, not a host window procedure.
 pub(super) struct CommonDialogHookTemplate {
     pub(super) enable_hook: bool,
     pub(super) enable_template: bool,
@@ -62,20 +68,86 @@ const CF_ENABLEHOOK: u32 = 0x0000_0008;
 const CF_ENABLETEMPLATE: u32 = 0x0000_0010;
 const CF_ENABLETEMPLATEHANDLE: u32 = 0x0000_0020;
 const CF_USESTYLE: u32 = 0x0000_0080;
+const CF_LIMITSIZE: u32 = 0x0000_2000;
 // Windows 3.1 COMMDLG.H requires lpszStyle to hold at least LF_FACESIZE bytes.
 const CF_STYLE_BYTES: usize = 32;
-const FR_ENABLEHOOK_OR_TEMPLATE: u32 = 0x0000_2300;
+const PD_RETURNDEFAULT: u32 = 0x0000_0400;
+const FR_ENABLEHOOK: u32 = 0x0000_0100;
+const FR_ENABLETEMPLATE: u32 = 0x0000_0200;
+const FR_ENABLETEMPLATEHANDLE: u32 = 0x0000_2000;
 const PD_ENABLEPRINHOOK: u32 = 0x0000_1000;
 const PD_ENABLESETUPHOOK: u32 = 0x0000_2000;
 const PD_ENABLEPRINTTEMPLATE: u32 = 0x0000_4000;
 const PD_ENABLESETUPTEMPLATE: u32 = 0x0000_8000;
 const PD_ENABLEPRINTTEMPLATEHANDLE: u32 = 0x0001_0000;
 const PD_ENABLESETUPTEMPLATEHANDLE: u32 = 0x0002_0000;
-const PD_HOOK_OR_TEMPLATE: u32 = PD_ENABLEPRINHOOK | PD_ENABLESETUPHOOK
-    | PD_ENABLEPRINTTEMPLATE | PD_ENABLESETUPTEMPLATE
-    | PD_ENABLEPRINTTEMPLATEHANDLE | PD_ENABLESETUPTEMPLATEHANDLE;
+
+enum DialogGate {
+    Continue,
+    /// The hook or template is present, but no live dialog window exists to
+    /// enter the guest procedure.
+    HookUnavailable,
+    Stop(Win16CommonDialogPreparation),
+}
 
 impl Win16State {
+    /// `None` is a null structure pointer. Microsoft documents that case as
+    /// `CDERR_INITIALIZATION`, and a readable size other than the packed Win16
+    /// record as `CDERR_STRUCTSIZE`. Neither case writes guest memory.
+    fn dialog_structure_size(
+        &self,
+        memory: &Memory,
+        structure_far: u32,
+    ) -> Result<Option<u32>, RuntimeError> {
+        if structure_far == 0 {
+            return Ok(None);
+        }
+        let pointer = self.selectors.pointer_from_far(structure_far)
+            .map_err(crate::runtime_error)?;
+        let bytes = self.read_text_bytes(memory, pointer, 4)?;
+        let raw: [u8; 4] = bytes.try_into().map_err(|_| RuntimeError::new(
+            Kind::InternalInvariant,
+            "Win16 common-dialog size read returned an unexpected length"))?;
+        Ok(Some(u32::from_le_bytes(raw)))
+    }
+
+    fn reject_common_dialog(&mut self, extended_error: u32) -> Win16CommonDialogPreparation {
+        self.common_dialog_state.last_extended_error = extended_error;
+        Win16CommonDialogPreparation::Immediate(0)
+    }
+
+    fn gate_structure_size(
+        &mut self,
+        memory: &Memory,
+        structure_far: u32,
+        expected: u32,
+    ) -> Result<DialogGate, RuntimeError> {
+        match self.dialog_structure_size(memory, structure_far)? {
+            None => Ok(DialogGate::Stop(self.reject_common_dialog(CDERR_INITIALIZATION))),
+            Some(size) if size != expected => {
+                Ok(DialogGate::Stop(self.reject_common_dialog(CDERR_STRUCTSIZE)))
+            }
+            Some(_) => Ok(DialogGate::Continue),
+        }
+    }
+
+    fn gate_one_hook_template(
+        &mut self,
+        memory: &Memory,
+        host: &mut impl RuntimeHost,
+        request: CommonDialogHookTemplate,
+    ) -> Result<DialogGate, RuntimeError> {
+        if !request.enable_hook && !request.enable_template && !request.enable_template_handle {
+            return Ok(DialogGate::Continue);
+        }
+        match self.resolve_common_dialog_hook_template(memory, host, request)? {
+            CommonDialogHookTemplateResolution::Rejected { extended_error } => {
+                Ok(DialogGate::Stop(self.reject_common_dialog(extended_error)))
+            }
+            CommonDialogHookTemplateResolution::Ready { .. } => Ok(DialogGate::HookUnavailable),
+        }
+    }
+
     pub(super) fn prepare_common_dialog(
         &mut self,
         memory: &Memory,
@@ -142,6 +214,11 @@ impl Win16State {
         return_kind: Win16ReturnKind,
         host: &mut impl RuntimeHost,
     ) -> Result<Win16CommonDialogPreparation, RuntimeError> {
+        if let DialogGate::Stop(stopped) = self.gate_structure_size(
+            memory, structure_far, OpenFileName16::SIZE as u32,
+        )? {
+            return Ok(stopped);
+        }
         let structure_pointer = self.selectors.pointer_from_far(structure_far)
             .map_err(crate::runtime_error)?;
         let structure = GuestOutputRange::capture(
@@ -151,10 +228,6 @@ impl Win16State {
             .map_err(|_| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 OPENFILENAME read returned an unexpected length"))?;
         let value = OpenFileName16::decode(&raw);
-        if value.structure_size != OpenFileName16::SIZE as u32 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 OPENFILENAME lStructSize does not match the packed Win16 record"));
-        }
         if value.flags & !OFN_VERIFIED_FLAGS != 0 {
             report_common_dialog_gap(host,
                 "Win16 OPENFILENAME uses flags outside the verified Windows 3.x set; returning FALSE");
@@ -322,25 +395,37 @@ impl Win16State {
     }
 
     fn prepare_choose_color(
-        &self,
+        &mut self,
         memory: &Memory,
         structure_far: u32,
         return_kind: Win16ReturnKind,
         host: &mut impl RuntimeHost,
     ) -> Result<Win16CommonDialogPreparation, RuntimeError> {
+        if let DialogGate::Stop(stopped) = self.gate_structure_size(
+            memory, structure_far, ChooseColor16::SIZE as u32,
+        )? {
+            return Ok(stopped);
+        }
         let pointer = self.selectors.pointer_from_far(structure_far).map_err(crate::runtime_error)?;
         let structure = GuestOutputRange::capture(self, memory, pointer, ChooseColor16::SIZE)?;
         let raw: [u8; ChooseColor16::SIZE] = structure.read(self, memory)?.try_into()
             .map_err(|_| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 CHOOSECOLOR read returned an unexpected length"))?;
         let value = ChooseColor16::decode(&raw);
-        if value.structure_size != ChooseColor16::SIZE as u32 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 CHOOSECOLOR lStructSize does not match the packed Win16 record"));
+        let hook_gate = self.gate_one_hook_template(memory, host, CommonDialogHookTemplate {
+            enable_hook: value.flags & CC_ENABLEHOOK != 0,
+            enable_template: value.flags & CC_ENABLETEMPLATE != 0,
+            enable_template_handle: value.flags & CC_ENABLETEMPLATEHANDLE != 0,
+            hook: value.hook,
+            instance: value.instance,
+            template_name: value.template,
+        })?;
+        if let DialogGate::Stop(stopped) = hook_gate {
+            return Ok(stopped);
         }
-        if value.flags & (CC_ENABLEHOOK | CC_ENABLETEMPLATE | CC_ENABLETEMPLATEHANDLE) != 0 {
+        if matches!(hook_gate, DialogGate::HookUnavailable) {
             report_common_dialog_gap(host,
-                "Win16 CHOOSECOLOR hooks and NE templates are not implemented; returning FALSE");
+                "Win16 CHOOSECOLOR hook is not called: no color-dialog window exists, so the call returns FALSE");
             return Ok(Win16CommonDialogPreparation::Immediate(0));
         }
         let owner = self.common_dialog_owner(value.owner)?;
@@ -378,35 +463,53 @@ impl Win16State {
         return_kind: Win16ReturnKind,
         host: &mut impl RuntimeHost,
     ) -> Result<Win16CommonDialogPreparation, RuntimeError> {
+        if let DialogGate::Stop(stopped) = self.gate_structure_size(
+            memory, structure_far, FindReplace16::SIZE as u32,
+        )? {
+            return Ok(stopped);
+        }
         let pointer = self.selectors.pointer_from_far(structure_far).map_err(crate::runtime_error)?;
         let structure = GuestOutputRange::capture(self, memory, pointer, FindReplace16::SIZE)?;
         let raw: [u8; FindReplace16::SIZE] = structure.read(self, memory)?.try_into()
             .map_err(|_| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 FINDREPLACE read returned an unexpected length"))?;
         let value = FindReplace16::decode(&raw);
-        if value.structure_size != FindReplace16::SIZE as u32 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 FINDREPLACE lStructSize does not match the packed Win16 record"));
-        }
-        if value.flags & FR_ENABLEHOOK_OR_TEMPLATE != 0 {
-            report_common_dialog_gap(host,
-                "Win16 FINDREPLACE hooks and NE templates are not implemented; returning NULL");
-            return Ok(Win16CommonDialogPreparation::Immediate(0));
-        }
-        let owner = match self.common_dialog_owner(value.owner)? {
-            Some(owner) => owner,
-            None => {
-                report_common_dialog_gap(host,
-                    "Win16 modeless Find/Replace requires an owner window for guest notifications; returning NULL");
-                return Ok(Win16CommonDialogPreparation::Immediate(0));
+        // FindText/ReplaceText require a real owner window. A null or unmapped
+        // HWND is CDERR_DIALOGFAILURE, which Microsoft gives as the example of
+        // an invalid common-dialog window handle. Zero find length, a null find
+        // buffer, or a null ReplaceText replacement buffer is
+        // FRERR_BUFFERLENGTHZERO. Guest memory is left unchanged.
+        let owner = match self.common_dialog_owner(value.owner) {
+            Ok(Some(owner)) => owner,
+            Ok(None) => return Ok(self.reject_common_dialog(CDERR_DIALOGFAILURE)),
+            Err(error) if super::is_guest_api_failure(&error) => {
+                return Ok(self.reject_common_dialog(CDERR_DIALOGFAILURE));
             }
+            Err(error) => return Err(error),
         };
         let replace = matches!(request, Win16CommdlgRequest::ReplaceText { .. });
-        let find_capacity = checked_capacity(u32::from(value.find_text_capacity))?;
-        if value.find_text == 0 || find_capacity == 0 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 FINDREPLACE requires a nonempty writable find-text buffer"));
+        if value.find_text_capacity == 0 || value.find_text == 0
+            || (replace && value.replace_text == 0)
+        {
+            return Ok(self.reject_common_dialog(FRERR_BUFFERLENGTHZERO));
         }
+        let hook_gate = self.gate_one_hook_template(memory, host, CommonDialogHookTemplate {
+            enable_hook: value.flags & FR_ENABLEHOOK != 0,
+            enable_template: value.flags & FR_ENABLETEMPLATE != 0,
+            enable_template_handle: value.flags & FR_ENABLETEMPLATEHANDLE != 0,
+            hook: value.hook,
+            instance: value.instance,
+            template_name: value.template,
+        })?;
+        if let DialogGate::Stop(stopped) = hook_gate {
+            return Ok(stopped);
+        }
+        if matches!(hook_gate, DialogGate::HookUnavailable) {
+            report_common_dialog_gap(host,
+                "Win16 FINDREPLACE hook is not called: no find-dialog window exists, so the call returns NULL");
+            return Ok(Win16CommonDialogPreparation::Immediate(0));
+        }
+        let find_capacity = checked_capacity(u32::from(value.find_text_capacity))?;
         let find_pointer = self.selectors.pointer_from_far(value.find_text)
             .map_err(crate::runtime_error)?;
         let find = GuestOutputRange::capture(self, memory, find_pointer, find_capacity)?;
@@ -417,7 +520,7 @@ impl Win16State {
         }
         let (replace_far, replace_pointer, replace_capacity, replace_text) = if replace {
             let capacity = checked_capacity(u32::from(value.replace_text_capacity))?;
-            if value.replace_text == 0 || capacity == 0 {
+            if capacity == 0 {
                 return Err(RuntimeError::new(Kind::GuestFault,
                     "Win16 ReplaceText requires a nonempty writable replacement buffer"));
             }
@@ -441,30 +544,48 @@ impl Win16State {
     }
 
     fn prepare_choose_font(
-        &self,
+        &mut self,
         memory: &Memory,
         structure_far: u32,
         return_kind: Win16ReturnKind,
         host: &mut impl RuntimeHost,
     ) -> Result<Win16CommonDialogPreparation, RuntimeError> {
+        if let DialogGate::Stop(stopped) = self.gate_structure_size(
+            memory, structure_far, ChooseFont16::SIZE as u32,
+        )? {
+            return Ok(stopped);
+        }
         let pointer = self.selectors.pointer_from_far(structure_far).map_err(crate::runtime_error)?;
         let structure = GuestOutputRange::capture(self, memory, pointer, ChooseFont16::SIZE)?;
         let raw: [u8; ChooseFont16::SIZE] = structure.read(self, memory)?.try_into()
             .map_err(|_| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 CHOOSEFONT read returned an unexpected length"))?;
         let value = ChooseFont16::decode(&raw);
-        if value.structure_size != ChooseFont16::SIZE as u32 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 CHOOSEFONT lStructSize does not match the packed Win16 record"));
+        let hook_gate = self.gate_one_hook_template(memory, host, CommonDialogHookTemplate {
+            enable_hook: value.flags & CF_ENABLEHOOK != 0,
+            enable_template: value.flags & CF_ENABLETEMPLATE != 0,
+            enable_template_handle: value.flags & CF_ENABLETEMPLATEHANDLE != 0,
+            hook: value.hook,
+            instance: value.instance,
+            template_name: value.template,
+        })?;
+        if let DialogGate::Stop(stopped) = hook_gate {
+            return Ok(stopped);
         }
-        if value.flags & (CF_ENABLEHOOK | CF_ENABLETEMPLATE | CF_ENABLETEMPLATEHANDLE) != 0 {
+        // CHOOSEFONT nSizeMin and nSizeMax are signed 16-bit fields. Microsoft
+        // returns CFERR_MAXLESSTHANMIN when CF_LIMITSIZE is set and nSizeMax
+        // is less than nSizeMin. The comparison is signed, and the structure
+        // is left unchanged.
+        if value.flags & CF_LIMITSIZE != 0 && value.min_size > value.max_size {
+            return Ok(self.reject_common_dialog(CFERR_MAXLESSTHANMIN));
+        }
+        if value.log_font == 0 || (value.flags & CF_USESTYLE != 0 && value.style == 0) {
+            return Ok(self.reject_common_dialog(CDERR_INITIALIZATION));
+        }
+        if matches!(hook_gate, DialogGate::HookUnavailable) {
             report_common_dialog_gap(host,
-                "Win16 CHOOSEFONT hooks and NE templates are not implemented; returning FALSE");
+                "Win16 CHOOSEFONT hook is not called: no font-dialog window exists, so the call returns FALSE");
             return Ok(Win16CommonDialogPreparation::Immediate(0));
-        }
-        if value.log_font == 0 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 CHOOSEFONT requires a writable LOGFONT buffer"));
         }
         let font_pointer = self.selectors.pointer_from_far(value.log_font)
             .map_err(crate::runtime_error)?;
@@ -507,25 +628,68 @@ impl Win16State {
     }
 
     fn prepare_print(
-        &self,
+        &mut self,
         memory: &Memory,
         structure_far: u32,
         return_kind: Win16ReturnKind,
         host: &mut impl RuntimeHost,
     ) -> Result<Win16CommonDialogPreparation, RuntimeError> {
+        if let DialogGate::Stop(stopped) = self.gate_structure_size(
+            memory, structure_far, PrintDlg16::SIZE as u32,
+        )? {
+            return Ok(stopped);
+        }
         let pointer = self.selectors.pointer_from_far(structure_far).map_err(crate::runtime_error)?;
         let structure = GuestOutputRange::capture(self, memory, pointer, PrintDlg16::SIZE)?;
         let raw: [u8; PrintDlg16::SIZE] = structure.read(self, memory)?.try_into()
             .map_err(|_| RuntimeError::new(Kind::InternalInvariant,
                 "Win16 PRINTDLG read returned an unexpected length"))?;
         let value = PrintDlg16::decode(&raw);
-        if value.structure_size != PrintDlg16::SIZE as u32 {
-            return Err(RuntimeError::new(Kind::GuestFault,
-                "Win16 PRINTDLG lStructSize does not match the packed Win16 record"));
+        // PD_RETURNDEFAULT allocates the default printer handles. A preset
+        // hDevMode or hDevNames fails with PDERR_RETDEFFAILURE and does not
+        // read those globals.
+        if value.flags & PD_RETURNDEFAULT != 0 && (value.dev_mode != 0 || value.dev_names != 0) {
+            return Ok(self.reject_common_dialog(PDERR_RETDEFFAILURE));
         }
-        if value.flags & PD_HOOK_OR_TEMPLATE != 0 {
+        // PRINTDLG keeps the preloaded template in hPrintTemplate or
+        // hSetupTemplate. hInstance is the module for a named template only.
+        let print_template_instance = if value.flags & PD_ENABLEPRINTTEMPLATEHANDLE != 0 {
+            value.print_template
+        } else {
+            value.instance
+        };
+        let print_gate = self.gate_one_hook_template(memory, host, CommonDialogHookTemplate {
+            enable_hook: value.flags & PD_ENABLEPRINHOOK != 0,
+            enable_template: value.flags & PD_ENABLEPRINTTEMPLATE != 0,
+            enable_template_handle: value.flags & PD_ENABLEPRINTTEMPLATEHANDLE != 0,
+            hook: value.print_hook,
+            instance: print_template_instance,
+            template_name: value.print_template_name,
+        })?;
+        if let DialogGate::Stop(stopped) = print_gate {
+            return Ok(stopped);
+        }
+        let setup_template_instance = if value.flags & PD_ENABLESETUPTEMPLATEHANDLE != 0 {
+            value.setup_template
+        } else {
+            value.instance
+        };
+        let setup_gate = self.gate_one_hook_template(memory, host, CommonDialogHookTemplate {
+            enable_hook: value.flags & PD_ENABLESETUPHOOK != 0,
+            enable_template: value.flags & PD_ENABLESETUPTEMPLATE != 0,
+            enable_template_handle: value.flags & PD_ENABLESETUPTEMPLATEHANDLE != 0,
+            hook: value.setup_hook,
+            instance: setup_template_instance,
+            template_name: value.setup_template_name,
+        })?;
+        if let DialogGate::Stop(stopped) = setup_gate {
+            return Ok(stopped);
+        }
+        if matches!(print_gate, DialogGate::HookUnavailable)
+            || matches!(setup_gate, DialogGate::HookUnavailable)
+        {
             report_common_dialog_gap(host,
-                "Win16 PRINTDLG hooks and NE templates are not implemented; returning FALSE");
+                "Win16 PRINTDLG hook is not called: no print-dialog window exists, so the call returns FALSE");
             return Ok(Win16CommonDialogPreparation::Immediate(0));
         }
         let dev_mode_capture = if value.dev_mode == 0 { None }

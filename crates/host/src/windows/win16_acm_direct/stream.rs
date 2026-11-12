@@ -66,36 +66,95 @@ impl NativeHeader {
         })?;
         native.push(ACMSTREAMHEADER::default());
         let header = native.as_mut_ptr();
-        // SAFETY: the reserved Vec allocation is stable until NativeHeader is
-        // retired; pointers reference buffers retained in this same owner.
-        unsafe {
-            ptr::addr_of_mut!((*header).cbStruct)
-                .write_unaligned(std::mem::size_of::<ACMSTREAMHEADER>() as u32);
-            let transient = (ACMSTREAMHEADER_STATUSF_DONE
-                | ACMSTREAMHEADER_STATUSF_INQUEUE
-                | ACMSTREAMHEADER_STATUSF_PREPARED) as u32;
-            ptr::addr_of_mut!((*header).fdwStatus).write_unaligned(status & !transient);
-            ptr::addr_of_mut!((*header).dwUser).write_unaligned(user as usize);
-            ptr::addr_of_mut!((*header).pbSrc).write_unaligned(if source.is_empty() {
-                ptr::null_mut()
-            } else {
-                source.as_ptr().cast_mut()
-            });
-            ptr::addr_of_mut!((*header).cbSrcLength).write_unaligned(source_len);
-            ptr::addr_of_mut!((*header).cbSrcLengthUsed).write_unaligned(0);
-            ptr::addr_of_mut!((*header).dwSrcUser).write_unaligned(source_user as usize);
-            ptr::addr_of_mut!((*header).pbDst).write_unaligned(if destination.is_empty() {
-                ptr::null_mut()
-            } else {
-                destination.as_ptr().cast_mut()
-            });
-            ptr::addr_of_mut!((*header).cbDstLength).write_unaligned(destination_len);
-            ptr::addr_of_mut!((*header).cbDstLengthUsed).write_unaligned(0);
-            ptr::addr_of_mut!((*header).dwDstUser).write_unaligned(destination_user as usize);
-            // Reserved driver state belongs to this native header. In
-            // particular, never import guest DWORDs as native codec state or
-            // return native values that could encode host pointers.
-        }
+        let struct_size = std::mem::size_of::<ACMSTREAMHEADER>() as u32;
+        let transient = (ACMSTREAMHEADER_STATUSF_DONE
+            | ACMSTREAMHEADER_STATUSF_INQUEUE
+            | ACMSTREAMHEADER_STATUSF_PREPARED) as u32;
+        let stored_status = status & !transient;
+        let user_value = user as usize;
+        let source_user_value = source_user as usize;
+        let destination_user_value = destination_user as usize;
+        let source_bytes = if source.is_empty() {
+            ptr::null_mut()
+        } else {
+            source.as_ptr().cast_mut()
+        };
+        let destination_bytes = if destination.is_empty() {
+            ptr::null_mut()
+        } else {
+            destination.as_ptr().cast_mut()
+        };
+        // SAFETY: `(*header).cbStruct` is the packed `cbStruct` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores the structure size without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).cbStruct).write_unaligned(struct_size) };
+        // SAFETY: `(*header).fdwStatus` is the packed `fdwStatus` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `stored_status` without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).fdwStatus).write_unaligned(stored_status) };
+        // SAFETY: `(*header).dwUser` is the packed `dwUser` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `user_value` without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).dwUser).write_unaligned(user_value) };
+        // SAFETY: `(*header).pbSrc` is the packed `pbSrc` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `source_bytes`
+        // is null or the owned source buffer, which stays allocated in this
+        // owner. `addr_of_mut` plus `write_unaligned` stores that pointer
+        // without a misaligned reference.
+        unsafe { ptr::addr_of_mut!((*header).pbSrc).write_unaligned(source_bytes) };
+        // SAFETY: `(*header).cbSrcLength` is the packed `cbSrcLength` field of
+        // this caller-owned `ACMSTREAMHEADER` in `native`. The record stays live
+        // for the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `source_len` without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).cbSrcLength).write_unaligned(source_len) };
+        // SAFETY: `(*header).cbSrcLengthUsed` is the packed `cbSrcLengthUsed`
+        // field of this caller-owned `ACMSTREAMHEADER` in `native`. The record
+        // stays live for the write and is a host address, not a guest address.
+        // `addr_of_mut` plus `write_unaligned` stores zero without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).cbSrcLengthUsed).write_unaligned(0) };
+        // SAFETY: `(*header).dwSrcUser` is the packed `dwSrcUser` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `source_user_value` without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).dwSrcUser).write_unaligned(source_user_value) };
+        // SAFETY: `(*header).pbDst` is the packed `pbDst` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `destination_bytes`
+        // is null or the owned destination buffer, which stays allocated in this
+        // owner. `addr_of_mut` plus `write_unaligned` stores that pointer without
+        // a misaligned reference.
+        unsafe { ptr::addr_of_mut!((*header).pbDst).write_unaligned(destination_bytes) };
+        // SAFETY: `(*header).cbDstLength` is the packed `cbDstLength` field of
+        // this caller-owned `ACMSTREAMHEADER` in `native`. The record stays live
+        // for the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `destination_len` without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).cbDstLength).write_unaligned(destination_len) };
+        // SAFETY: `(*header).cbDstLengthUsed` is the packed `cbDstLengthUsed`
+        // field of this caller-owned `ACMSTREAMHEADER` in `native`. The record
+        // stays live for the write and is a host address, not a guest address.
+        // `addr_of_mut` plus `write_unaligned` stores zero without a misaligned
+        // reference.
+        unsafe { ptr::addr_of_mut!((*header).cbDstLengthUsed).write_unaligned(0) };
+        // SAFETY: `(*header).dwDstUser` is the packed `dwDstUser` field of this
+        // caller-owned `ACMSTREAMHEADER` in `native`. The record stays live for
+        // the write and is a host address, not a guest address. `addr_of_mut`
+        // plus `write_unaligned` stores `destination_user_value` without a
+        // misaligned reference.
+        unsafe { ptr::addr_of_mut!((*header).dwDstUser).write_unaligned(destination_user_value) };
+        // Reserved driver state belongs to this native header. In
+        // particular, never import guest DWORDs as native codec state or
+        // return native values that could encode host pointers.
         Ok(Some(Self {
             native,
             source,
@@ -134,13 +193,23 @@ impl NativeHeader {
         };
         // Every caller reserved this reply buffer before entering native ACM.
         let header = self.native.as_ptr();
-        // SAFETY: native header storage stays owned and live in this record.
-        let (status, source_used, destination_used) = unsafe {
-            let status = ptr::addr_of!((*header).fdwStatus).read_unaligned();
-            let source_used = ptr::addr_of!((*header).cbSrcLengthUsed).read_unaligned();
-            let destination_used = ptr::addr_of!((*header).cbDstLengthUsed).read_unaligned();
-            (status, source_used, destination_used)
-        };
+        // SAFETY: `(*header).fdwStatus` is the packed `fdwStatus` field of this
+        // caller-owned `ACMSTREAMHEADER` in `self.native`. The record stays live
+        // for the read and is a host address, not a guest address. `addr_of`
+        // plus `read_unaligned` copies the `u32` and does not retain the pointer.
+        let status = unsafe { ptr::addr_of!((*header).fdwStatus).read_unaligned() };
+        // SAFETY: `(*header).cbSrcLengthUsed` is the packed `cbSrcLengthUsed`
+        // field of this caller-owned `ACMSTREAMHEADER` in `self.native`. The
+        // record stays live for the read and is a host address, not a guest
+        // address. `addr_of` plus `read_unaligned` copies the `u32` and does not
+        // retain the pointer.
+        let source_used = unsafe { ptr::addr_of!((*header).cbSrcLengthUsed).read_unaligned() };
+        // SAFETY: `(*header).cbDstLengthUsed` is the packed `cbDstLengthUsed`
+        // field of this caller-owned `ACMSTREAMHEADER` in `self.native`. The
+        // record stays live for the read and is a host address, not a guest
+        // address. `addr_of` plus `read_unaligned` copies the `u32` and does not
+        // retain the pointer.
+        let destination_used = unsafe { ptr::addr_of!((*header).cbDstLengthUsed).read_unaligned() };
         destination.extend_from_slice(output);
         Ok(ResultValue::StreamHeader {
             result,
@@ -223,14 +292,19 @@ pub(super) fn open(
     let filter_ptr = filter.as_mut().map_or(ptr::null_mut(), |bytes| {
         bytes.as_mut_ptr().cast::<WAVEFILTER>()
     });
-    // SAFETY: format/filter structures and their bytes are local owned
-    // storage. No guest callback or instance pointer is provided.
+    let source_format = source.as_mut_ptr().cast::<WAVEFORMATEX>();
+    let destination_format = destination.as_mut_ptr().cast::<WAVEFORMATEX>();
+    // SAFETY: `output_stream` is null for a query or addresses `native`, which
+    // stays live for this call. `native_driver` is null or a host `HACMDRIVER`.
+    // `source_format`, `destination_format`, and `filter_ptr` are null or point
+    // at caller-owned bytes that stay live. `acmStreamOpen` returns an
+    // `MMRESULT` and retains no pointer. No pointer is a guest address.
     let result = unsafe {
         acmStreamOpen(
             output_stream,
             native_driver,
-            source.as_mut_ptr().cast::<WAVEFORMATEX>(),
-            destination.as_mut_ptr().cast::<WAVEFORMATEX>(),
+            source_format,
+            destination_format,
             filter_ptr,
             0,
             0,
@@ -289,8 +363,10 @@ pub(super) fn close(
         return Ok(ResultValue::Scalar(MMSYSERR_ALLOCATED));
     }
     let native_stream = native.native();
-    // SAFETY: the stream's NativeStream owner remains in the host table and
-    // its prepared-header table was checked empty above.
+    // SAFETY: `native_stream` is an `HACMSTREAM` owned by the host table. Its
+    // prepared-header table was empty above, so this close does not release
+    // header storage. `acmStreamClose` returns an `MMRESULT` and retains no
+    // pointer. The handle is a host value, not a guest address.
     let result = unsafe { acmStreamClose(native_stream, flags) };
     if result == MMSYSERR_NOERROR {
         host.remove(handle);
@@ -311,7 +387,9 @@ pub(super) fn size(
         });
     };
     let mut output_bytes = 0u32;
-    // SAFETY: native is a live stream and output points to a local DWORD.
+    // SAFETY: `native` is a live host `HACMSTREAM`. `output_bytes` is a local
+    // `u32` that stays live for this call. `acmStreamSize` writes that `u32`
+    // and returns an `MMRESULT`. No pointer is a guest address.
     let result = unsafe { acmStreamSize(native, input_bytes, &mut output_bytes, flags) };
     Ok(ResultValue::StreamSize {
         result,
@@ -383,14 +461,19 @@ pub(super) fn prepare(
             "native ACM prepared-header owner disappeared before prepare",
         )
     })?;
-    // SAFETY: native stream, header, and both buffers are host-owned and will
-    // remain in the handle table while native ACM marks the header prepared.
-    let result = unsafe { acmStreamPrepareHeader(native_stream, header.pointer(), flags) };
-    let prepared = unsafe {
-        ptr::addr_of!((*header.pointer()).fdwStatus).read_unaligned()
-            & (ACMSTREAMHEADER_STATUSF_PREPARED as u32)
-            != 0
-    };
+    let native_header = header.pointer();
+    // SAFETY: `native_stream` is a live host `HACMSTREAM`. `native_header`
+    // points at the `ACMSTREAMHEADER` retained in the handle table with its
+    // source and destination buffers. Those stay live while
+    // `acmStreamPrepareHeader` marks the header prepared. The call returns an
+    // `MMRESULT` and retains no pointer. No pointer is a guest address.
+    let result = unsafe { acmStreamPrepareHeader(native_stream, native_header, flags) };
+    // SAFETY: `(*native_header).fdwStatus` is the packed `fdwStatus` field of
+    // the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the read and is a host address, not a guest address. `addr_of`
+    // plus `read_unaligned` copies the `u32` and does not retain the pointer.
+    let status = unsafe { ptr::addr_of!((*native_header).fdwStatus).read_unaligned() };
+    let prepared = status & (ACMSTREAMHEADER_STATUSF_PREPARED as u32) != 0;
     let reply = header.result(result, reply_destination, reply_bytes, false)?;
     if result != MMSYSERR_NOERROR && !prepared {
         stream.headers.remove(&header_token);
@@ -446,13 +529,30 @@ pub(super) fn unprepare(
     let native_header = header.pointer();
     // ACM requires the original prepared capacities when unpreparing. Convert
     // may have shortened these retained native lengths for a single call.
-    // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference.
+    // SAFETY: `(*native_header).cbSrcLength` is the packed `cbSrcLength` field
+    // of the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the write and is a host address, not a guest address.
+    // `addr_of_mut` plus `write_unaligned` stores `source_capacity` without a
+    // misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).cbSrcLength).write_unaligned(source_capacity) };
+    // SAFETY: `(*native_header).cbDstLength` is the packed `cbDstLength` field
+    // of the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the write and is a host address, not a guest address.
+    // `addr_of_mut` plus `write_unaligned` stores `destination_capacity` without
+    // a misaligned reference.
     unsafe {
-        ptr::addr_of_mut!((*native_header).cbSrcLength).write_unaligned(source_capacity);
-        ptr::addr_of_mut!((*native_header).cbDstLength).write_unaligned(destination_capacity);
-    }
-    // SAFETY: stream and prepared header are retained by the host table.
+        ptr::addr_of_mut!((*native_header).cbDstLength).write_unaligned(destination_capacity)
+    };
+    // SAFETY: `native_stream` is a live host `HACMSTREAM`. `native_header`
+    // points at the prepared `ACMSTREAMHEADER` retained in the host table.
+    // That record and its buffers stay live for this call.
+    // `acmStreamUnprepareHeader` returns an `MMRESULT` and retains no pointer.
+    // No pointer is a guest address.
     let result = unsafe { acmStreamUnprepareHeader(native_stream, native_header, flags) };
+    // SAFETY: `(*native_header).fdwStatus` is the packed `fdwStatus` field of
+    // the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the read and is a host address, not a guest address. `addr_of`
+    // plus `read_unaligned` copies the `u32` and does not retain the pointer.
     let status = unsafe { ptr::addr_of!((*native_header).fdwStatus).read_unaligned() };
     // Microsoft permits selected unprepare failures to clear PREPARED. This
     // flag is a retirement receipt only because this exact retained header
@@ -513,18 +613,51 @@ pub(super) fn convert(
     let native_header = header.pointer();
     // Used counts and completion flags describe one conversion call. Clear
     // their prior values while retaining PREPARED and other driver state.
-    // SAFETY: The field belongs to a packed record. addr_of plus write_unaligned writes it without creating a misaligned reference. The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-    unsafe {
-        ptr::addr_of_mut!((*native_header).cbSrcLengthUsed).write_unaligned(0);
-        ptr::addr_of_mut!((*native_header).cbDstLengthUsed).write_unaligned(0);
-        ptr::addr_of_mut!((*native_header).cbSrcLength).write_unaligned(source.len() as u32);
-        ptr::addr_of_mut!((*native_header).cbDstLength).write_unaligned(destination.len() as u32);
-        let status = ptr::addr_of!((*native_header).fdwStatus).read_unaligned();
-        let completed = (ACMSTREAMHEADER_STATUSF_DONE | ACMSTREAMHEADER_STATUSF_INQUEUE) as u32;
-        ptr::addr_of_mut!((*native_header).fdwStatus).write_unaligned(status & !completed);
-    }
-    // SAFETY: pointers and lengths were fixed when this header was prepared;
-    // the host copies fresh guest bytes into same-sized owned allocations.
+    let source_bytes = source.len() as u32;
+    let destination_bytes = destination.len() as u32;
+    let completed = (ACMSTREAMHEADER_STATUSF_DONE | ACMSTREAMHEADER_STATUSF_INQUEUE) as u32;
+    // SAFETY: `(*native_header).cbSrcLengthUsed` is the packed
+    // `cbSrcLengthUsed` field of the caller-owned `ACMSTREAMHEADER` at
+    // `native_header`. The record stays live for the write and is a host
+    // address, not a guest address. `addr_of_mut` plus `write_unaligned` stores
+    // zero without a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).cbSrcLengthUsed).write_unaligned(0) };
+    // SAFETY: `(*native_header).cbDstLengthUsed` is the packed
+    // `cbDstLengthUsed` field of the caller-owned `ACMSTREAMHEADER` at
+    // `native_header`. The record stays live for the write and is a host
+    // address, not a guest address. `addr_of_mut` plus `write_unaligned` stores
+    // zero without a misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).cbDstLengthUsed).write_unaligned(0) };
+    // SAFETY: `(*native_header).cbSrcLength` is the packed `cbSrcLength` field
+    // of the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the write and is a host address, not a guest address.
+    // `addr_of_mut` plus `write_unaligned` stores `source_bytes` without a
+    // misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).cbSrcLength).write_unaligned(source_bytes) };
+    // SAFETY: `(*native_header).cbDstLength` is the packed `cbDstLength` field
+    // of the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the write and is a host address, not a guest address.
+    // `addr_of_mut` plus `write_unaligned` stores `destination_bytes` without a
+    // misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).cbDstLength).write_unaligned(destination_bytes) };
+    // SAFETY: `(*native_header).fdwStatus` is the packed `fdwStatus` field of
+    // the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the read and is a host address, not a guest address. `addr_of`
+    // plus `read_unaligned` copies the `u32` and does not retain the pointer.
+    let status = unsafe { ptr::addr_of!((*native_header).fdwStatus).read_unaligned() };
+    let stored_status = status & !completed;
+    // SAFETY: `(*native_header).fdwStatus` is the packed `fdwStatus` field of
+    // the caller-owned `ACMSTREAMHEADER` at `native_header`. The record stays
+    // live for the write and is a host address, not a guest address.
+    // `addr_of_mut` plus `write_unaligned` stores `stored_status` without a
+    // misaligned reference.
+    unsafe { ptr::addr_of_mut!((*native_header).fdwStatus).write_unaligned(stored_status) };
+    // SAFETY: `native_stream` is a live host `HACMSTREAM`. `native_header`
+    // points at the prepared `ACMSTREAMHEADER` whose pointers and lengths were
+    // fixed when this header was prepared. The host copied fresh bytes into
+    // those same owned allocations, which stay live for this call.
+    // `acmStreamConvert` returns an `MMRESULT` and retains no pointer. No
+    // pointer is a guest address.
     let result = unsafe { acmStreamConvert(native_stream, native_header, flags) };
     header.result(result, reply_destination, destination.len(), false)
 }
@@ -537,7 +670,9 @@ pub(super) fn reset(
     let Some(native) = host.stream(handle) else {
         return Ok(ResultValue::Scalar(INVALHANDLE));
     };
-    // SAFETY: native is a live host-owned stream handle.
+    // SAFETY: `native` is a live host `HACMSTREAM`. `acmStreamReset` returns an
+    // `MMRESULT` and retains no pointer. The handle is a host value, not a
+    // guest address.
     Ok(ResultValue::Scalar(unsafe {
         acmStreamReset(native, flags)
     }))

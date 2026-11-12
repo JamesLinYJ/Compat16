@@ -20,6 +20,14 @@ impl Win16State {
     ) -> Result<Option<u8>, RuntimeError> {
         let (return_selector, return_offset, return_sp) = return_to;
         let value = match request {
+            request @ Win16ApiRequest::GdiDrawing(
+                win16_abi::Win16GdiDrawingRequest::BitBlt { .. }
+                | win16_abi::Win16GdiDrawingRequest::PatBlt { .. }
+                | win16_abi::Win16GdiDrawingRequest::StretchBlt { .. }
+            ) => match prepare_bitmap_transfer(request) {
+                None => 0,
+                Some(request) => self.drawing(request, memory, host)?,
+            },
             Win16ApiRequest::GdiObjects(request @ (
                 win16_abi::Win16GdiObjectsRequest::CreateMetaFile { .. }
                 | win16_abi::Win16GdiObjectsRequest::CloseMetaFile { .. }
@@ -68,7 +76,17 @@ impl Win16State {
                 self.execute_gdi_spool(request, memory, host)?
             }
             Win16ApiRequest::GdiServices(request) => self.execute_gdi_services(request, memory, host)?,
-            Win16ApiRequest::GdiInternal(request) => self.execute_gdi_internal(request, memory, host)?,
+            Win16ApiRequest::GdiInternal(request) => {
+                // GDI.613 is EnumFontFamiliesEx. The internal table still owns
+                // the gap result; this arm is the guest-visible call.
+                if request.ordinal == 613 {
+                    return self.begin_enum_font_families_ex(
+                        cpu, dos, memory, host, request,
+                        (return_selector, return_offset, return_sp),
+                    );
+                }
+                self.execute_gdi_internal(request, memory, host)?
+            }
             request @ (Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::AbortPath { .. },
             )
@@ -247,9 +265,6 @@ impl Win16State {
             | Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::PaintRgn { .. },
             )
-            | Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::PatBlt {
-                ..
-            })
             | Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::PathToRegion { .. },
             )
@@ -362,9 +377,6 @@ impl Win16State {
                 win16_abi::Win16GdiDrawingRequest::SetWindowOrgEx { .. },
             )
             | Win16ApiRequest::GdiDrawing(
-                win16_abi::Win16GdiDrawingRequest::StretchBlt { .. },
-            )
-            | Win16ApiRequest::GdiDrawing(
                 win16_abi::Win16GdiDrawingRequest::StrokeAndFillPath { .. },
             )
             | Win16ApiRequest::GdiDrawing(
@@ -398,9 +410,6 @@ impl Win16State {
                 win16_abi::Win16GdiDrawingRequest::Rectangle { .. },
             )
             | Win16ApiRequest::GdiText(win16_abi::Win16GdiTextRequest::TextOut {
-                ..
-            })
-            | Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::BitBlt {
                 ..
             })
             | Win16ApiRequest::GdiObjects(
@@ -660,6 +669,119 @@ impl Win16State {
     }
 }
 
+/// Whether a ternary raster operation reads a source bitmap.
+///
+/// `NOMIRRORBITMAP` (`0x80000000`) and `CAPTUREBLT` (`0x40000000`) sit beside the
+/// ROP3 index. After those flags are cleared, the operation uses a source when
+/// the two source nibbles of the ROP3 index differ. `BitBlt` and `StretchBlt`
+/// then ignore `hdcSrc`, including a handle that is not a device context.
+/// `PatBlt` fails when the operation uses a source.
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt>
+/// <https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchblt>
+/// <https://learn.microsoft.com/en-us/windows/win32/gdi/pattern-block-transfer>
+/// <https://learn.microsoft.com/en-us/windows/win32/gdi/ternary-raster-operations>
+/// <https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/71/104.HTM>
+fn raster_operation_uses_source(rop: u32) -> bool {
+    let rop = rop & !0xC000_0000;
+    ((rop & 0xCCCC_0000) >> 2) != (rop & 0x3333_0000)
+}
+
+/// Clears an unused source DC. `None` is `PatBlt`'s documented zero failure for
+/// a raster operation that reads a source, and that failure does not call the
+/// host or change guest memory.
+fn prepare_bitmap_transfer(request: Win16ApiRequest) -> Option<Win16ApiRequest> {
+    match request {
+        Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::PatBlt {
+            dc,
+            x,
+            y,
+            width,
+            height,
+            rop,
+        }) => {
+            if raster_operation_uses_source(rop) {
+                None
+            } else {
+                Some(Win16ApiRequest::GdiDrawing(
+                    win16_abi::Win16GdiDrawingRequest::PatBlt {
+                        dc,
+                        x,
+                        y,
+                        width,
+                        height,
+                        rop,
+                    },
+                ))
+            }
+        }
+        Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::BitBlt {
+            destination,
+            destination_x,
+            destination_y,
+            width,
+            height,
+            source,
+            source_x,
+            source_y,
+            rop,
+        }) => {
+            let source = if raster_operation_uses_source(rop) {
+                source
+            } else {
+                0
+            };
+            Some(Win16ApiRequest::GdiDrawing(
+                win16_abi::Win16GdiDrawingRequest::BitBlt {
+                    destination,
+                    destination_x,
+                    destination_y,
+                    width,
+                    height,
+                    source,
+                    source_x,
+                    source_y,
+                    rop,
+                },
+            ))
+        }
+        Win16ApiRequest::GdiDrawing(win16_abi::Win16GdiDrawingRequest::StretchBlt {
+            destination,
+            destination_x,
+            destination_y,
+            width,
+            height,
+            source,
+            source_x,
+            source_y,
+            source_width,
+            source_height,
+            rop,
+        }) => {
+            let source = if raster_operation_uses_source(rop) {
+                source
+            } else {
+                0
+            };
+            Some(Win16ApiRequest::GdiDrawing(
+                win16_abi::Win16GdiDrawingRequest::StretchBlt {
+                    destination,
+                    destination_x,
+                    destination_y,
+                    width,
+                    height,
+                    source,
+                    source_x,
+                    source_y,
+                    source_width,
+                    source_height,
+                    rop,
+                },
+            ))
+        }
+        other => Some(other),
+    }
+}
+
 #[cfg(test)]
 #[path = "win16_gdi_rectangle_predicate_tests.rs"]
 mod rectangle_predicate_tests;
@@ -667,3 +789,7 @@ mod rectangle_predicate_tests;
 #[cfg(test)]
 #[path = "win16_dispatch_set_rect_rgn_tests.rs"]
 mod set_rect_rgn_tests;
+
+#[cfg(test)]
+#[path = "win16_bitmap_transfer_tests.rs"]
+mod bitmap_transfer_tests;

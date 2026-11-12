@@ -124,19 +124,26 @@ fn read_section(
         )
     })?;
     let mut wide_buffer = zeroed_wide(wide_capacity)?;
-    // SAFETY: inputs are owned NUL-terminated UTF-16 copies, absent inputs stay
-    // NULL, and the output is writable for `wide_capacity` UTF-16 units.
-    let copied = unsafe {
-        if private_profile {
-            GetPrivateProfileSectionW(
-                section_ptr,
-                wide_buffer.as_mut_ptr(),
-                native_capacity,
-                filename_ptr,
-            )
-        } else {
-            GetProfileSectionW(section_ptr, wide_buffer.as_mut_ptr(), native_capacity)
+    let output_units = wide_buffer.as_mut_ptr();
+    let copied = if private_profile {
+        // SAFETY: `section_ptr` is null or points at the owned NUL-terminated
+        // UTF-16 section name in `section`, which stays live for this call.
+        // `output_units` addresses `native_capacity` writable UTF-16 units in
+        // `wide_buffer`, and that buffer stays live. `filename_ptr` is null or
+        // points at the owned profile path in `filename`, which stays live.
+        // GetPrivateProfileSectionW writes the section list and returns the
+        // copied unit count. No pointer is a guest address.
+        unsafe {
+            GetPrivateProfileSectionW(section_ptr, output_units, native_capacity, filename_ptr)
         }
+    } else {
+        // SAFETY: `section_ptr` is null or points at the owned NUL-terminated
+        // UTF-16 section name in `section`, which stays live for this call.
+        // `output_units` addresses `native_capacity` writable UTF-16 units in
+        // `wide_buffer`, and that buffer stays live. GetProfileSectionW writes
+        // the system-profile section list and returns the copied unit count.
+        // No pointer is a guest address.
+        unsafe { GetProfileSectionW(section_ptr, output_units, native_capacity) }
     };
 
     let native_copied = usize::try_from(copied).map_err(|error| {
@@ -300,21 +307,29 @@ fn write_section(
     };
     let section_ptr = section.as_ref().map_or(ptr::null(), |value| value.as_ptr());
     let entries_ptr = entries.as_ref().map_or(ptr::null(), |value| value.as_ptr());
-
-    // SAFETY: present inputs are owned UTF-16 strings or the exact validated
-    // UTF-16 MULTI_SZ; NULL remains distinct for documented profile semantics.
-    let result = unsafe {
-        if private_profile {
-            WritePrivateProfileSectionW(
-                section_ptr,
-                entries_ptr,
-                filename
-                    .as_ref()
-                    .map_or(ptr::null(), |value| value.as_ptr()),
-            )
-        } else {
-            WriteProfileSectionW(section_ptr, entries_ptr)
-        }
+    let result = if private_profile {
+        let filename_ptr = filename
+            .as_ref()
+            .map_or(ptr::null(), |value| value.as_ptr());
+        // SAFETY: `section_ptr` is null or points at the owned NUL-terminated
+        // UTF-16 section name in `section`, which stays live for this call.
+        // `entries_ptr` is null or points at the owned UTF-16 copy of the
+        // validated guest MULTI_SZ in `entries`, which stays live.
+        // `filename_ptr` is null or points at the owned profile path in
+        // `filename`, which stays live. A null pointer preserves
+        // WritePrivateProfileSectionW's documented deletion behavior. The call
+        // returns the native BOOL and retains no pointer. No pointer is a
+        // guest address.
+        unsafe { WritePrivateProfileSectionW(section_ptr, entries_ptr, filename_ptr) }
+    } else {
+        // SAFETY: `section_ptr` is null or points at the owned NUL-terminated
+        // UTF-16 section name in `section`, which stays live for this call.
+        // `entries_ptr` is null or points at the owned UTF-16 copy of the
+        // validated guest MULTI_SZ in `entries`, which stays live. A null
+        // pointer preserves WriteProfileSectionW's documented deletion
+        // behavior. The call returns the native BOOL and retains no pointer.
+        // No pointer is a guest address.
+        unsafe { WriteProfileSectionW(section_ptr, entries_ptr) }
     };
     Ok(result != 0)
 }

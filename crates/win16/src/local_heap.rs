@@ -842,3 +842,7 @@ mod handle_delta_tests;
 #[cfg(test)]
 #[path = "local_heap/realloc_zero_tests.rs"]
 mod realloc_zero_tests;
+
+#[cfg(test)]
+#[path = "local_heap/memory_contract_tests.rs"]
+mod memory_contract_tests;

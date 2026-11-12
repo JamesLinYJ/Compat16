@@ -13,6 +13,7 @@ use runtime::{
     Win16GdiServicesResult as ResultValue, Win16HostAbcWidth, Win16HostGdiIdentity,
     Win16HostKerningPair, Win16HostRasterizerCaps,
 };
+use win16_abi::gdi_abi::{Win16FontDataPlan, plan_win16_font_data};
 use windows_sys::Win32::Foundation::{RECT, SIZE};
 use windows_sys::Win32::Graphics::Gdi::{
     ABC, AddFontResourceW, CreateScalableFontResourceW, GDI_ERROR, GetAspectRatioFilterEx,
@@ -220,56 +221,56 @@ pub(super) fn execute(
             byte_count,
             copy_buffer,
         } => {
-            let Some(dc_use) = dcs.lease_dc(dc)? else {
-                return Ok(Value::FontData {
-                    result: GDI_ERROR as u32,
-                    bytes: Vec::new(),
-                });
+            let failure = || Value::FontData {
+                result: 0,
+                bytes: Vec::new(),
             };
-            // SDK 3.1 Programmer's Reference, Volume 2 (GetFontData) specifies
-            // zero when dwOffset is at or beyond a valid table's size. The
-            // native W API reports GDI_ERROR for that case, so query the size
-            // on this same pinned HDC before making the data call. An unknown
-            // table or other native query error remains GDI_ERROR.
-            // SAFETY: `GetFontData` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
+            let Some(dc_use) = dcs.lease_dc(dc)? else {
+                return Ok(failure());
+            };
+            // Win32 GetFontData returns GDI_ERROR (0xFFFFFFFF) when the table
+            // is missing or the font is not TrueType. Windows 3.1 GetFontData
+            // returns zero for a failed call. Query the size on this pinned
+            // HDC and copy only a range the table can satisfy.
+            // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-getfontdata
+            // SAFETY: the HDC lease stays live for this synchronous size query.
+            // A null buffer and a zero length request the table size and do
+            // not write. No guest address is passed.
             let table_size = unsafe { GetFontData(dc_use.native(), table, 0, ptr::null_mut(), 0) };
             if table_size == GDI_ERROR as u32 {
-                return Ok(Value::FontData {
-                    result: GDI_ERROR as u32,
+                return Ok(failure());
+            }
+            match plan_win16_font_data(table_size, offset, byte_count, copy_buffer) {
+                Win16FontDataPlan::Failure => Ok(failure()),
+                Win16FontDataPlan::TableSize => Ok(Value::FontData {
+                    result: table_size,
                     bytes: Vec::new(),
-                });
+                }),
+                Win16FontDataPlan::Copy { len } => {
+                    let Some(mut bytes) = allocate_zeroed_bytes(len as usize) else {
+                        return Ok(failure());
+                    };
+                    // SAFETY: `dc_use` still pins the HDC. `bytes` is owned and
+                    // holds exactly `len` bytes, which is the only pointer passed.
+                    let copied = unsafe {
+                        GetFontData(
+                            dc_use.native(),
+                            table,
+                            offset,
+                            bytes.as_mut_ptr().cast::<c_void>(),
+                            len,
+                        )
+                    };
+                    if copied == GDI_ERROR as u32 || copied == 0 || copied > len {
+                        return Ok(failure());
+                    }
+                    bytes.truncate(copied as usize);
+                    Ok(Value::FontData {
+                        result: copied,
+                        bytes,
+                    })
+                }
             }
-            if offset >= table_size {
-                return Ok(Value::FontData {
-                    result: 0,
-                    bytes: Vec::new(),
-                });
-            }
-            let mut bytes = if copy_buffer && byte_count != 0 {
-                let Some(bytes) = allocate_zeroed_bytes(byte_count as usize) else {
-                    return Ok(Value::FontData {
-                        result: GDI_ERROR as u32,
-                        bytes: Vec::new(),
-                    });
-                };
-                bytes
-            } else {
-                Vec::new()
-            };
-            let buffer = if bytes.is_empty() {
-                ptr::null_mut()
-            } else {
-                bytes.as_mut_ptr().cast::<c_void>()
-            };
-            // SAFETY: the HDC remains pinned, and `buffer` is either null or
-            // points into an owned buffer of exactly `byte_count` bytes.
-            let result = unsafe { GetFontData(dc_use.native(), table, offset, buffer, byte_count) };
-            if result == GDI_ERROR as u32 {
-                bytes.clear();
-            } else if !bytes.is_empty() {
-                bytes.truncate(bytes.len().min(result as usize));
-            }
-            Ok(Value::FontData { result, bytes })
         }
         Op::GetRasterizerCaps { byte_count } => {
             let mut native = RASTERIZER_STATUS::default();

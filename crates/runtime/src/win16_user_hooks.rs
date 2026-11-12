@@ -874,3 +874,7 @@ impl Win16State {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "win16_user_hooks_tests.rs"]
+mod tests;

@@ -70,8 +70,10 @@ fn read_output_buffer(
     memory: &impl GuestMemory,
 ) -> Result<Option<crate::Win16OutputBuffer>, Win16Error> {
     let capacity = word_argument(arguments, capacity_index)?;
-    if capacity == 0 {
-        // A zero-capacity profile query does not access the guest pointer.
+    // The Win16 size is a signed int, and Windows 95 limits a profile section
+    // buffer to 32,767 characters. A non-positive word, including every value
+    // above 32,767, copies nothing and does not read the guest pointer.
+    if (capacity as i16) <= 0 {
         return Ok(None);
     }
     checked_output_buffer(

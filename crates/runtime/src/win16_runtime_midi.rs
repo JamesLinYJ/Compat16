@@ -42,8 +42,14 @@ pub(crate) const MMSYSERR_NOERROR: u32 = 0;
 pub(crate) const MMSYSERR_INVALHANDLE: u32 = 5;
 pub(crate) const MMSYSERR_NOMEM: u32 = 7;
 pub(crate) const MMSYSERR_NOTSUPPORTED: u32 = 8;
+pub(crate) const MMSYSERR_BADERRNUM: u32 = 9;
 pub(crate) const MMSYSERR_INVALFLAG: u32 = 10;
 pub(crate) const MMSYSERR_INVALPARAM: u32 = 11;
+// Windows 3.1 MMSYSTEM.H: MMSYSERR_LASTERROR is MMSYSERR_INVALPARAM and
+// MIDIERR_LASTERROR is MIDIERR_DONT_CONTINUE.
+pub(crate) const MMSYSERR_LASTERROR: u16 = 11;
+pub(crate) const MIDIERR_BASE: u16 = 64;
+pub(crate) const MIDIERR_LASTERROR: u16 = 71;
 pub(crate) const MIDIERR_UNPREPARED: u32 = 64;
 pub(crate) const MIDIERR_STILLPLAYING: u32 = 65;
 

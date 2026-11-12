@@ -10,6 +10,7 @@ pub(super) fn create_string(
     value: Vec<u8>,
     code_page: i16,
 ) -> Result<Win16HostDdeResult, RuntimeError> {
+    let code_page = compat_services::win16_dde::normalize_ansi_code_page(code_page);
     let native_instance = context.state.borrow().native_instance(instance)?;
     let value = match guest_dde_string_to_wide(context, &value, code_page) {
         Ok(value) => value,
@@ -104,6 +105,7 @@ pub(super) fn query_string(
     capacity: Option<u32>,
     code_page: i16,
 ) -> Result<Win16HostDdeResult, RuntimeError> {
+    let code_page = compat_services::win16_dde::normalize_ansi_code_page(code_page);
     let (native_instance, native_string) = {
         let state = context.state.borrow();
         (

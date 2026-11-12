@@ -525,7 +525,9 @@ pub(super) fn client_transaction(
             entered_native: true,
         },
         dde_error: error,
-        transaction_result: return_result.then_some(result_code),
+        // Failure returns 0 and leaves the caller's pdwResult unchanged.
+        // Success still publishes the native result, including 0.
+        transaction_result: (succeeded && return_result).then_some(result_code),
         data_transfer,
     })
 }

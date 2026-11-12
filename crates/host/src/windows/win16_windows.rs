@@ -88,6 +88,8 @@ mod win16_common_dialog_callbacks;
 mod win16_common_dialog_worker;
 #[path = "win16_frame_geometry.rs"]
 mod win16_frame_geometry;
+#[path = "win16_keyboard_state.rs"]
+mod win16_keyboard_state;
 #[path = "win16_menu_attachment.rs"]
 mod win16_menu_attachment;
 #[path = "win16_menu_worker.rs"]

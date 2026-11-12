@@ -68,11 +68,13 @@ pub(super) fn execute(
             method,
         } => set_pointer(owner, handle, low, high, method),
         C::SetEndOfFile { handle } => unary_handle(owner, handle, "SetEndOfFile", |raw| {
-            // SAFETY: raw is a live handle owned by this adapter.
+            // SAFETY: `raw` is a table-owned file HANDLE. SetEndOfFile does not
+            // dereference a caller pointer. A zero BOOL is the only failure result.
             unsafe { SetEndOfFile(raw) }
         }),
         C::Flush { handle } => unary_handle(owner, handle, "FlushFileBuffers", |raw| {
-            // SAFETY: raw is a live handle owned by this adapter.
+            // SAFETY: `raw` is a table-owned file HANDLE. FlushFileBuffers does
+            // not dereference a caller pointer. A zero BOOL is the only failure result.
             unsafe { FlushFileBuffers(raw) }
         }),
         C::FindFirst { path } => find_first(owner, path),
@@ -101,8 +103,10 @@ fn find_first(
     let ansi = matches!(path, S::Ansi(_));
     let path = text::to_wide_z(owner.codec, path, "Win32 find path contains embedded NUL")?;
     let mut native = WIN32_FIND_DATAW::default();
-    // SAFETY: path and output record are adapter-owned and valid for this
-    // synchronous W call; no guest pointer crosses the host boundary.
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. `native` is a caller-owned WIN32_FIND_DATAW that also stays
+    // live. FindFirstFileW returns null or INVALID_HANDLE_VALUE on failure and
+    // retains no pointer. Neither pointer is a guest address.
     let raw = unsafe { FindFirstFileW(path.as_ptr(), &mut native) };
     if raw.is_null() || raw == INVALID_HANDLE_VALUE {
         return Ok(result(
@@ -143,13 +147,16 @@ fn find_first_ex(
     let ansi = matches!(path, S::Ansi(_));
     let path = text::to_wide_z(owner.codec, path, "Win32 find path contains embedded NUL")?;
     let mut native = WIN32_FIND_DATAW::default();
-    // SAFETY: only native-owned path and output memory are supplied; the PE32
-    // filter pointer is validated NULL and remains native NULL here.
+    let output = (&mut native as *mut WIN32_FIND_DATAW).cast::<c_void>();
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. `output` is that caller-owned WIN32_FIND_DATAW. The filter
+    // pointer is null. FindFirstFileExW returns null or INVALID_HANDLE_VALUE
+    // on failure and retains no pointer. Neither pointer is a guest address.
     let raw = unsafe {
         FindFirstFileExW(
             path.as_ptr(),
             information_level as i32,
-            (&mut native as *mut WIN32_FIND_DATAW).cast::<c_void>(),
+            output,
             search_operation as i32,
             ptr::null(),
             additional_flags,
@@ -192,8 +199,10 @@ fn find_next(
     match encoding {
         X::Ansi => {
             let mut data = WIN32_FIND_DATAW::default();
-            // SAFETY: the table-owned search HANDLE and W output record remain
-            // valid for this synchronous call.
+            // SAFETY: `raw` is a table-owned search HANDLE. `data` is a
+            // caller-owned WIN32_FIND_DATAW that stays live for this call.
+            // A zero BOOL is the only failure result. The record pointer is a
+            // host address, not a guest address.
             if unsafe { FindNextFileW(raw, &mut data) } != 0 {
                 Ok(result(
                     V::FindData(Some(host_find_data(owner.codec, &data, true)?)),
@@ -205,8 +214,10 @@ fn find_next(
         }
         X::Wide => {
             let mut data = WIN32_FIND_DATAW::default();
-            // SAFETY: the search HANDLE and native output record remain owned
-            // and valid for the duration of FindNextFileW.
+            // SAFETY: `raw` is a table-owned search HANDLE. `data` is a
+            // caller-owned WIN32_FIND_DATAW that stays live for this call.
+            // A zero BOOL is the only failure result. The record pointer is a
+            // host address, not a guest address.
             if unsafe { FindNextFileW(raw, &mut data) } != 0 {
                 Ok(result(
                     V::FindData(Some(host_find_data(owner.codec, &data, false)?)),
@@ -260,11 +271,14 @@ fn create(
     }
     let id = owner.reserve_file_handle()?;
     let path = text::to_wide_z(owner.codec, path, "Win32 file path contains embedded NUL")?;
-    // SAFETY: path is owned and terminated; security attributes are NULL and
-    // the optional template is a validated host HANDLE token.
-    let (raw, last_error) = unsafe {
-        crate::windows::win32_safe::set_last_error(0);
-        let raw = CreateFileW(
+    crate::windows::win32_safe::set_last_error(0);
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. The security descriptor is null. `template` is null or a host
+    // HANDLE from this adapter's table. CreateFileW returns null or
+    // INVALID_HANDLE_VALUE on failure and retains no pointer. The path pointer
+    // is a host address, not a guest address.
+    let raw = unsafe {
+        CreateFileW(
             path.as_ptr(),
             desired_access,
             share_mode,
@@ -272,9 +286,9 @@ fn create(
             creation_disposition,
             flags_and_attributes,
             template,
-        );
-        (raw, crate::windows::win32_safe::last_error())
+        )
     };
+    let last_error = crate::windows::win32_safe::last_error();
     if raw.is_null() || raw == INVALID_HANDLE_VALUE {
         return Ok(result(V::FileHandle(None), Some(last_error)));
     }
@@ -309,8 +323,11 @@ fn read(
     bytes.resize(length, 0);
     let mut count = 0_u32;
     let raw = owner.file_handle(token)?;
-    // SAFETY: output buffer covers capacity bytes and count points to a local
-    // DWORD. This synchronous path deliberately supplies no OVERLAPPED record.
+    // SAFETY: `raw` is a table-owned file HANDLE. `bytes` is a caller-owned
+    // buffer of `capacity` bytes and `count` is a local DWORD; both stay live
+    // for this call. The overlapped pointer is null because this path is
+    // synchronous. A zero BOOL is the only failure result. Both buffer
+    // pointers are host addresses, not guest addresses.
     let success = unsafe {
         ReadFile(
             raw,
@@ -346,8 +363,11 @@ fn write(
     let length = u32::try_from(bytes.len()).map_err(|_| exhausted("WriteFile input size"))?;
     let mut count = 0_u32;
     let raw = owner.file_handle(token)?;
-    // SAFETY: input points to the owned byte vector for the duration of this
-    // synchronous call; no asynchronous view escapes the adapter.
+    // SAFETY: `raw` is a table-owned file HANDLE. `bytes` is an owned input
+    // buffer of `length` bytes and `count` is a local DWORD; both stay live
+    // for this call. The overlapped pointer is null because this path is
+    // synchronous. A zero BOOL is the only failure result. Both buffer
+    // pointers are host addresses, not guest addresses.
     let success =
         unsafe { WriteFile(raw, bytes.as_ptr(), length, &mut count, ptr::null_mut()) } != 0;
     if count > length {
@@ -386,8 +406,10 @@ fn delete(
     path: S,
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let path = text::to_wide_z(codec, path, "Win32 file path contains embedded NUL")?;
-    // SAFETY: path is an owned, terminated UTF-16 name.
-    let success = unsafe { DeleteFileW(path.as_ptr()) != 0 };
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 name that stays live for
+    // this call. A zero BOOL is the only failure result. The pointer is a host
+    // address, not a guest address.
+    let success = unsafe { DeleteFileW(path.as_ptr()) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -401,8 +423,10 @@ fn move_file(
     }
     let from = text::to_wide_z(codec, from, "Win32 source path contains embedded NUL")?;
     let to = text::to_wide_z(codec, to, "Win32 destination path contains embedded NUL")?;
-    // SAFETY: both native input names are owned UTF-16 strings and remain live.
-    let success = unsafe { MoveFileW(from.as_ptr(), to.as_ptr()) != 0 };
+    // SAFETY: `from` and `to` are owned NUL-terminated UTF-16 paths that stay
+    // live for this call. A zero BOOL is the only failure result. Neither
+    // pointer is a guest address.
+    let success = unsafe { MoveFileW(from.as_ptr(), to.as_ptr()) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -418,8 +442,10 @@ fn copy_file(
     }
     let from = text::to_wide_z(codec, from, "Win32 source path contains embedded NUL")?;
     let to = text::to_wide_z(codec, to, "Win32 destination path contains embedded NUL")?;
-    // SAFETY: both native input names are owned UTF-16 strings and remain live.
-    let success = unsafe { CopyFileW(from.as_ptr(), to.as_ptr(), fail_if_exists) != 0 };
+    // SAFETY: `from` and `to` are owned NUL-terminated UTF-16 paths that stay
+    // live for this call. A zero BOOL is the only failure result. Neither
+    // pointer is a guest address.
+    let success = unsafe { CopyFileW(from.as_ptr(), to.as_ptr(), fail_if_exists) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -428,8 +454,10 @@ fn create_directory(
     path: S,
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let path = text::to_wide_z(codec, path, "Win32 directory path contains embedded NUL")?;
-    // SAFETY: path is terminated; this service uses NULL security attributes.
-    let success = unsafe { CreateDirectoryW(path.as_ptr(), ptr::null()) != 0 };
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. The security descriptor is null. A zero BOOL is the only
+    // failure result. The pointer is a host address, not a guest address.
+    let success = unsafe { CreateDirectoryW(path.as_ptr(), ptr::null()) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -438,8 +466,10 @@ fn remove_directory(
     path: S,
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let path = text::to_wide_z(codec, path, "Win32 directory path contains embedded NUL")?;
-    // SAFETY: path is an owned, terminated UTF-16 name.
-    let success = unsafe { RemoveDirectoryW(path.as_ptr()) != 0 };
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. A zero BOOL is the only failure result. The pointer is a host
+    // address, not a guest address.
+    let success = unsafe { RemoveDirectoryW(path.as_ptr()) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -448,7 +478,9 @@ fn get_attributes(
     path: S,
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let path = text::to_wide_z(codec, path, "Win32 file path contains embedded NUL")?;
-    // SAFETY: path is an owned, terminated UTF-16 name.
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. u32::MAX is the failure value. The pointer is a host address,
+    // not a guest address.
     let value = unsafe { GetFileAttributesW(path.as_ptr()) };
     let error = (value == u32::MAX).then(api_error);
     Ok(result(V::Dword(value), error))
@@ -460,8 +492,11 @@ fn set_attributes(
     attributes: u32,
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let path = text::to_wide_z(codec, path, "Win32 file path contains embedded NUL")?;
-    // SAFETY: path is terminated; the native attribute DWORD is preserved.
-    let success = unsafe { SetFileAttributesW(path.as_ptr(), attributes) != 0 };
+    // SAFETY: `path` is an owned NUL-terminated UTF-16 path that stays live for
+    // this call. `attributes` is the guest DWORD passed through unchanged. A
+    // zero BOOL is the only failure result. The pointer is a host address, not
+    // a guest address.
+    let success = unsafe { SetFileAttributesW(path.as_ptr(), attributes) } != 0;
     Ok(bool_result(success, true))
 }
 
@@ -613,7 +648,9 @@ fn get_type(
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let raw = owner.file_handle(token)?;
     set_api_error(0);
-    // SAFETY: raw is a live, table-owned file HANDLE.
+    // SAFETY: `raw` is a table-owned file HANDLE. GetFileType does not
+    // dereference a caller pointer. FILE_TYPE_UNKNOWN is ambiguous, so the
+    // caller distinguishes it with the last-error code.
     let value = unsafe { GetFileType(raw) };
     let error = (value == FILE_TYPE_UNKNOWN)
         .then(api_error)
@@ -629,17 +666,16 @@ fn get_size(
     let raw = owner.file_handle(token)?;
     let mut high = 0_u32;
     set_api_error(0);
-    // SAFETY: raw is owned and high is either the requested local output or NULL.
-    let low = unsafe {
-        GetFileSize(
-            raw,
-            if high_output {
-                &mut high
-            } else {
-                ptr::null_mut()
-            },
-        )
+    let high_ptr = if high_output {
+        &mut high as *mut u32
+    } else {
+        ptr::null_mut()
     };
+    // SAFETY: `raw` is a table-owned file HANDLE. `high_ptr` is null or the
+    // local high DWORD, which stays live for this call. u32::MAX is the
+    // failure value and is distinguished from a real size by the last-error
+    // code. The pointer is a host address, not a guest address.
+    let low = unsafe { GetFileSize(raw, high_ptr) };
     let error_code = api_error();
     let success = low != u32::MAX || error_code == 0;
     Ok(result(
@@ -658,7 +694,9 @@ fn get_size_ex(
 ) -> Result<runtime::Win32HostImportResult, RuntimeError> {
     let raw = owner.file_handle(token)?;
     let mut size = 0_i64;
-    // SAFETY: raw is owned and size points to a local writable 64-bit integer.
+    // SAFETY: `raw` is a table-owned file HANDLE. `size` is a caller-owned i64
+    // that stays live for this call. A zero BOOL is the only failure result.
+    // The pointer is a host address, not a guest address.
     let success = unsafe { GetFileSizeEx(raw, &mut size) } != 0;
     Ok(result(
         V::FileSize {
@@ -680,16 +718,18 @@ fn set_pointer(
     let raw = owner.file_handle(token)?;
     let mut high_output = high.unwrap_or(0);
     set_api_error(0);
-    // SAFETY: raw is owned; high is passed only when the guest supplied it and
-    // otherwise NULL preserves SetFilePointer's low-DWORD-only contract.
-    let position = unsafe {
-        SetFilePointer(
-            raw,
-            low,
-            high.map_or(ptr::null_mut(), |_| &mut high_output),
-            method,
-        )
+    let high_ptr = if high.is_some() {
+        &mut high_output as *mut i32
+    } else {
+        ptr::null_mut()
     };
+    // SAFETY: `raw` is a table-owned file HANDLE. `high_ptr` is null when the
+    // guest omitted the high DWORD, which preserves SetFilePointer's
+    // low-DWORD-only contract, or it is that local integer and stays live for
+    // this call. u32::MAX is the failure value and is distinguished from a
+    // real position by the last-error code. The pointer is a host address, not
+    // a guest address.
+    let position = unsafe { SetFilePointer(raw, low, high_ptr, method) };
     let error_code = api_error();
     let success = position != u32::MAX || error_code == 0;
     Ok(result(

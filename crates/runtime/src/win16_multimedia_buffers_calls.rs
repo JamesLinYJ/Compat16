@@ -153,16 +153,22 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
-        let output = if size == 0 {
-            None
-        } else {
-            match self.capture_wave_output(memory, output_far, usize::from(size)) {
-                Ok(output) => Some(output),
-                Err(error) if is_guest_api_failure(&error) => {
-                    return Ok(MMSYSERR_INVALPARAM);
-                }
-                Err(error) => return Err(error),
+        // Windows 3.1 MMSYSTEM.H accepts MMSYSERR 0..=11 and WAVERR 32..=35.
+        // Any other number is MMSYSERR_BADERRNUM and the caller's buffer stays
+        // unchanged, including when cchText is zero or the pointer is unusable.
+        if !wave_error_number_defined(error_code) {
+            return Ok(MMSYSERR_BADERRNUM);
+        }
+        // waveOutGetErrorText copies nothing and returns zero when cchText is 0.
+        if size == 0 {
+            return Ok(MMSYSERR_NOERROR);
+        }
+        let output = match self.capture_wave_output(memory, output_far, usize::from(size)) {
+            Ok(output) => output,
+            Err(error) if is_guest_api_failure(&error) => {
+                return Ok(MMSYSERR_INVALPARAM);
             }
+            Err(error) => return Err(error),
         };
         let reply = host.win16_wave(Win16HostWaveOperation::ErrorText {
             direction: host_direction(direction),
@@ -193,14 +199,8 @@ impl Win16State {
             .position(|byte| *byte == 0)
             .map_or(bytes.len(), |index| index + 1);
         bytes.truncate(written);
-        if let Some(output) = output {
-            if !bytes.is_empty() {
-                commit_one_wave_output(self, memory, output, bytes)?;
-            }
-        } else if !bytes.is_empty() {
-            return Err(wave_invariant(
-                "zero-capacity WAVE error text returned output bytes",
-            ));
+        if !bytes.is_empty() {
+            commit_one_wave_output(self, memory, output, bytes)?;
         }
         Ok(result)
     }
@@ -241,9 +241,8 @@ impl Win16State {
             Err(error) if is_guest_api_failure(&error) => return Ok(MMSYSERR_INVALPARAM),
             Err(error) => return Err(error),
         };
-        if capture.header.flags != 0 {
-            return Ok(MMSYSERR_INVALPARAM);
-        }
+        // Application loop flags are legal before prepare. Driver-owned bits
+        // are replaced from the native header after a successful prepare.
         let length = capture.header.buffer_length;
         if capture.header.data == 0 && length != 0 {
             return Ok(MMSYSERR_INVALPARAM);
@@ -749,6 +748,10 @@ pub(super) fn commit_one_wave_output(
     })?;
     writes.push((output, bytes));
     super::super::guest_ranges::commit_guest_writes(state, memory, writes)
+}
+
+fn wave_error_number_defined(error: u16) -> bool {
+    error <= MMSYSERR_LASTERROR || (WAVERR_BASE..=WAVERR_LASTERROR).contains(&error)
 }
 
 fn host_wave_parameter(parameter: Win16WaveParameter) -> Option<Win16HostWaveParameter> {

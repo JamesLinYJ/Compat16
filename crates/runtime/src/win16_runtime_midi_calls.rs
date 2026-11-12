@@ -6,8 +6,9 @@ use win16_abi::{Win16MidiDirection as GuestDirection, Win16MidiHeader16,
 
 use super::{MidiCallbackRoute, MidiDeviceRecord, MidiHeaderRecord,
     CALLBACK_FUNCTION, CALLBACK_NULL, CALLBACK_TASK, CALLBACK_TYPEMASK, CALLBACK_WINDOW,
-    MHDR_DONE, MHDR_INQUEUE, MHDR_PREPARED, MIDIERR_STILLPLAYING, MIDIERR_UNPREPARED,
-    MMSYSERR_INVALFLAG, MMSYSERR_INVALHANDLE, MMSYSERR_INVALPARAM, MMSYSERR_NOMEM,
+    MHDR_DONE, MHDR_INQUEUE, MHDR_PREPARED, MIDIERR_BASE, MIDIERR_LASTERROR,
+    MIDIERR_STILLPLAYING, MIDIERR_UNPREPARED, MMSYSERR_BADERRNUM, MMSYSERR_INVALFLAG,
+    MMSYSERR_INVALHANDLE, MMSYSERR_INVALPARAM, MMSYSERR_LASTERROR, MMSYSERR_NOMEM,
     MMSYSERR_NOERROR, MMSYSERR_NOTSUPPORTED};
 use super::ranges::{self, MidiGuestRange};
 use super::Win16State;
@@ -191,6 +192,15 @@ impl Win16State {
         memory: &mut Memory,
         host: &mut impl RuntimeHost,
     ) -> Result<u32, RuntimeError> {
+        // Windows 3.1 MMSYSTEM.H accepts MMSYSERR 0..=11 and MIDIERR 64..=71.
+        // Any other number is MMSYSERR_BADERRNUM and the caller's buffer stays
+        // unchanged. A zero character count returns success and copies nothing.
+        if !midi_error_number_defined(error) {
+            return Ok(MMSYSERR_BADERRNUM);
+        }
+        if size == 0 {
+            return Ok(MMSYSERR_NOERROR);
+        }
         let output = match self.capture_midi_range(memory, output_far, usize::from(size), false, true) {
             Ok(output) => output,
             Err(error) if is_guest_pointer_error(&error) => return Ok(MMSYSERR_INVALPARAM),
@@ -659,6 +669,10 @@ impl Win16State {
             host.report_diagnostic(&Diagnostic::warning(Kind::CompatibilityGap, message.to_owned()));
         }
     }
+}
+
+fn midi_error_number_defined(error: u16) -> bool {
+    error <= MMSYSERR_LASTERROR || (MIDIERR_BASE..=MIDIERR_LASTERROR).contains(&error)
 }
 
 fn verify_header_state(state: &HostHeaderState, capacity: u32) -> Result<(), RuntimeError> {

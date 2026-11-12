@@ -38,7 +38,9 @@ mod win16_builtin_data_exports;
 mod win16_dde;
 mod win16_io_trace;
 mod win16_loader;
+mod win16_profile_integer;
 mod win16_runtime;
+pub use win16_profile_integer::win16_profile_integer;
 pub use win16_abi::{Win16CharacterClassification, network_print_abi};
 pub use win16_io_trace::{
     Win16IoEvent, Win16ServiceBoundaryStage, Win16WindowCallbackPhase,
@@ -331,7 +333,10 @@ pub use midi_host_boundary::*;
 mod netbios_host_boundary;
 pub use netbios_host_boundary::RuntimeNetbiosHost;
 mod win16_win31_indexes;
-pub use win16_win31_indexes::{win31_stock_object, win31_stretch_blt_mode, win31_system_metric};
+pub use win16_win31_indexes::{
+    merge_win31_keyboard_state, overlay_win31_keyboard_slots, win31_key_state_word,
+    win31_stock_object, win31_stretch_blt_mode, win31_system_metric, win31_virtual_key,
+};
 mod host_boundary;
 pub use host_boundary::*;
 mod host_boundary_dde;

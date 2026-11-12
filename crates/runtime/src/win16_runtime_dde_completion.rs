@@ -781,17 +781,14 @@ fn validate_dde_error_shape(
         ));
     }
     match request {
-        R::ClientTransaction { result_output, .. } => {
-            let V::ClientTransaction { entered_native, .. } = &result.value else {
+        R::ClientTransaction { .. } => {
+            if !matches!(result.value, V::ClientTransaction { .. }) {
                 return Err(invariant(
                     "failed DDE transaction has the wrong result value",
                 ));
-            };
-            let should_have_result = *entered_native && *result_output != 0;
-            if result.transaction_result.is_some() != should_have_result {
-                return Err(invariant(
-                    "failed DDE transaction pdwResult does not match native entry and request",
-                ));
+            }
+            if result.transaction_result.is_some() {
+                return Err(invariant("failed DDE transaction published pdwResult"));
             }
         }
         _ if result.transaction_result.is_some() => {

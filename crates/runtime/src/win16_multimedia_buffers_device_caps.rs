@@ -53,13 +53,25 @@ impl Win16State {
         let capabilities = capabilities.ok_or_else(|| {
             wave_invariant("successful WAVE device-capabilities call omitted output")
         })?;
+        // Windows 3.1 WAVEINCAPS and WAVEOUTCAPS store VERSION as a 16-bit
+        // UINT. A wider native value is not truncated into the guest record.
+        let raw_version = match capabilities {
+            Win16HostWaveCapabilities::Input { driver_version, .. }
+            | Win16HostWaveCapabilities::Output { driver_version, .. } => driver_version,
+        };
+        let driver_version = u16::try_from(raw_version).map_err(|_| {
+            RuntimeError::new(
+                Kind::CompatibilityGap,
+                "native WAVE driver version does not fit Win16 VERSION",
+            )
+        })?;
         let mut bytes = match (direction, capabilities) {
             (
                 Win16WaveDirection::Input,
                 Win16HostWaveCapabilities::Input {
                     manufacturer_id,
                     product_id,
-                    driver_version,
+                    driver_version: _,
                     product_name,
                     formats,
                     channels,
@@ -68,7 +80,7 @@ impl Win16State {
                 Win16WaveInputCapabilities16 {
                     manufacturer_id,
                     product_id,
-                    driver_version: driver_version as u16,
+                    driver_version,
                     product_name,
                     formats,
                     channels,
@@ -80,7 +92,7 @@ impl Win16State {
                 Win16HostWaveCapabilities::Output {
                     manufacturer_id,
                     product_id,
-                    driver_version,
+                    driver_version: _,
                     product_name,
                     formats,
                     channels,
@@ -90,7 +102,7 @@ impl Win16State {
                 Win16WaveOutputCapabilities16 {
                     manufacturer_id,
                     product_id,
-                    driver_version: driver_version as u16,
+                    driver_version,
                     product_name,
                     formats,
                     channels,

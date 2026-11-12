@@ -211,6 +211,19 @@ pub(super) fn execute(
             };
             match kind {
                 Win16PaletteTransferKind::Get => {
+                    if count == 0 {
+                        // SAFETY: A null PALETTEENTRY pointer and a zero count
+                        // ask for the palette length. GetPaletteEntries does
+                        // not write through the pointer. The palette token is
+                        // a retained HPALETTE.
+                        let copied = unsafe {
+                            GetPaletteEntries(native, u32::from(start), 0, ptr::null_mut())
+                        };
+                        return Ok(Value::PaletteEntries {
+                            count: copied as i32,
+                            entries: Vec::new(),
+                        });
+                    }
                     let mut native_entries = native_palette_entries(usize::from(count))?;
                     // SAFETY: `native_entries` owns `count` writable entries
                     // and the palette token resolves to a retained HPALETTE.
@@ -305,6 +318,18 @@ pub(super) fn execute(
                     entries: Vec::new(),
                 });
             };
+            if count == 0 {
+                // SAFETY: A null PALETTEENTRY pointer and a zero count ask for
+                // the system-palette length. GetSystemPaletteEntries does not
+                // write through the pointer. The HDC lease stays live.
+                let copied = unsafe {
+                    GetSystemPaletteEntries(dc_use.native(), u32::from(start), 0, ptr::null_mut())
+                };
+                return Ok(Value::PaletteEntries {
+                    count: copied as i32,
+                    entries: Vec::new(),
+                });
+            }
             let mut entries = native_palette_entries(usize::from(count))?;
             // SAFETY: `entries` is writable for the requested number of rows.
             let copied = unsafe {
@@ -627,3 +652,7 @@ fn rgbquads_to_bytes(colors: Vec<RGBQUAD>) -> Result<Vec<[u8; 4]>, RuntimeError>
     }));
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_palette_native_tests.rs"]
+mod palette_native_tests;

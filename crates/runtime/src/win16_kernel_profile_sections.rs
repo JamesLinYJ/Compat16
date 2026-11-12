@@ -28,20 +28,32 @@ pub(super) fn dispatch(
         Win16KernelProfileSectionRequest::GetProfileSection {
             section, output_buffer,
         } => {
-            let capacity = output_buffer.map_or(0, |output| output.capacity);
+            if section.is_none() {
+                return Ok(0);
+            }
+            let Some(output) = *output_buffer else {
+                return Ok(0);
+            };
             let (bytes, copied) = host.win16_system_profile_section(
-                section.as_deref(), capacity,
+                section.as_deref(), output.capacity,
             )?;
-            write_section_result(state, *output_buffer, bytes, copied, memory)
+            write_section_result(state, Some(output), bytes, copied, memory)
         }
         Win16KernelProfileSectionRequest::GetPrivateProfileSection {
             section, output_buffer, filename,
         } => {
-            let capacity = output_buffer.map_or(0, |output| output.capacity);
+            if section.is_none() {
+                return Ok(0);
+            }
+            let Some(output) = *output_buffer else {
+                return Ok(0);
+            };
             let (bytes, copied) = host.win16_profile_section(
-                section.as_deref(), &state.private_profile_path(filename.as_deref(), host)?, capacity,
+                section.as_deref(),
+                &state.private_profile_path(filename.as_deref(), host)?,
+                output.capacity,
             )?;
-            write_section_result(state, *output_buffer, bytes, copied, memory)
+            write_section_result(state, Some(output), bytes, copied, memory)
         }
     }
 }

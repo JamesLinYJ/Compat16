@@ -156,15 +156,38 @@ fn icon_size_packs_width_low_and_height_high() {
 }
 
 #[test]
-fn icon_size_truncates_each_metric_to_sixteen_bits() {
-    let (mut runtime, _, _) = prepare(86, &[]);
-    let mut host = DragHost::default();
-    host.metrics.insert(11, 0x1_0020);
-    host.metrics.insert(12, -1);
-    runtime.win16.as_mut().unwrap().dispatch(
-        &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, 0,
-    ).unwrap();
-    assert_eq!((runtime.cpu.regs.ax(), runtime.cpu.regs.dx()), (0x0020, 0xFFFF));
+fn icon_size_keeps_a_fitting_signed_metric_and_drops_the_rest() {
+    // 32 and 16 are a normal icon. 32767 and -32768 are the signed endpoints.
+    // -1 stays 0xFFFF. 32768, 65535, and any wider host metric do not fit a
+    // Win16 int; keeping their low 16 bits would invent a size.
+    let cases: [(i32, i32, u16, u16); 11] = [
+        (0, 0, 0, 0),
+        (32, 16, 32, 16),
+        (32_767, -32_768, 32_767, 0x8000),
+        (-1, 1, 0xffff, 1),
+        (32_768, 32, 0, 32),
+        (65_535, 16, 0, 16),
+        (65_536, -1, 0, 0xffff),
+        (65_537, 32, 0, 32),
+        (0x1_0020, -1, 0, 0xffff),
+        (i32::MAX, i32::MIN, 0, 0),
+        (-32_769, 32_767, 0, 32_767),
+    ];
+    for (width, height, ax, dx) in cases {
+        let (mut runtime, _, _) = prepare(86, &[]);
+        let mut host = DragHost::default();
+        host.metrics.insert(11, width);
+        host.metrics.insert(12, height);
+        runtime.win16.as_mut().unwrap().dispatch(
+            &mut runtime.cpu, &mut runtime.memory, &mut runtime.dos, &mut host, 0,
+        ).unwrap();
+        assert_eq!(
+            (runtime.cpu.regs.ax(), runtime.cpu.regs.dx()),
+            (ax, dx),
+            "{width},{height}",
+        );
+        assert_eq!(host.metric_order, [11, 12], "{width},{height}");
+    }
 }
 
 #[test]

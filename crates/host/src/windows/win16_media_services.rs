@@ -79,13 +79,16 @@ impl Win16MediaServicesHost {
                 // SAFETY: caps is a writable TIMECAPS and its size matches the binding.
                 let result =
                     unsafe { timeGetDevCaps(&mut caps, core::mem::size_of::<TIMECAPS>() as u32) };
-                // SAFETY: windows-sys marks TIMECAPS packed, so read its fields unaligned.
-                let (minimum_period, maximum_period) = unsafe {
-                    (
-                        ptr::read_unaligned(ptr::addr_of!(caps.wPeriodMin)),
-                        ptr::read_unaligned(ptr::addr_of!(caps.wPeriodMax)),
-                    )
-                };
+                // SAFETY: `caps.wPeriodMin` belongs to this packed TIMECAPS. The
+                // unaligned read copies that field without forming a misaligned
+                // reference. The record stays live for this read and is not a
+                // guest address.
+                let minimum_period = unsafe { ptr::read_unaligned(ptr::addr_of!(caps.wPeriodMin)) };
+                // SAFETY: `caps.wPeriodMax` belongs to this packed TIMECAPS. The
+                // unaligned read copies that field without forming a misaligned
+                // reference. The record stays live for this read and is not a
+                // guest address.
+                let maximum_period = unsafe { ptr::read_unaligned(ptr::addr_of!(caps.wPeriodMax)) };
                 Ok(TimeResult::DevCaps {
                     result,
                     minimum_period,
@@ -482,41 +485,69 @@ impl Drop for Win16MediaServicesHost {
 fn read_time_value(native: &MMTIME) -> Win16HostMediaTimeValue {
     // MMTIME is packed and contains a C union. Copy only the active arm into
     // owned bytes; no native field reference or pointer crosses this adapter.
-    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
+    // SAFETY: `native.wType` belongs to this packed MMTIME. The unaligned read
+    // copies that field without forming a misaligned reference. The record
+    // stays live for this read and is not a guest address.
     let kind = unsafe { ptr::read_unaligned(ptr::addr_of!(native.wType)) };
-    // SAFETY: `Milliseconds`, `read_unaligned`, `Samples` uses caller-owned borrows that stay live for this synchronous call. Invalid handles return the API's failure code, and no guest address is passed.
-    unsafe {
-        match kind {
-            TIME_MS => Win16HostMediaTimeValue::Milliseconds(ptr::read_unaligned(ptr::addr_of!(
-                native.u.ms
-            ))),
-            TIME_SAMPLES => Win16HostMediaTimeValue::Samples(ptr::read_unaligned(ptr::addr_of!(
-                native.u.sample
-            ))),
-            TIME_BYTES => {
-                Win16HostMediaTimeValue::Bytes(ptr::read_unaligned(ptr::addr_of!(native.u.cb)))
-            }
-            TIME_MIDI => Win16HostMediaTimeValue::Midi(ptr::read_unaligned(ptr::addr_of!(
-                native.u.midi.songptrpos
-            ))),
-            TIME_SMPTE => {
-                let mut value = [0_u8; 6];
+    match kind {
+        TIME_MS => Win16HostMediaTimeValue::Milliseconds(
+            // SAFETY: `native.u.ms` is the millisecond arm of this packed MMTIME
+            // union. The unaligned read copies that field without forming a
+            // misaligned reference. The record stays live and is not a guest
+            // address.
+            unsafe { ptr::read_unaligned(ptr::addr_of!(native.u.ms)) },
+        ),
+        TIME_SAMPLES => Win16HostMediaTimeValue::Samples(
+            // SAFETY: `native.u.sample` is the sample arm of this packed MMTIME
+            // union. The unaligned read copies that field without forming a
+            // misaligned reference. The record stays live and is not a guest
+            // address.
+            unsafe { ptr::read_unaligned(ptr::addr_of!(native.u.sample)) },
+        ),
+        TIME_BYTES => Win16HostMediaTimeValue::Bytes(
+            // SAFETY: `native.u.cb` is the byte-count arm of this packed MMTIME
+            // union. The unaligned read copies that field without forming a
+            // misaligned reference. The record stays live and is not a guest
+            // address.
+            unsafe { ptr::read_unaligned(ptr::addr_of!(native.u.cb)) },
+        ),
+        TIME_MIDI => Win16HostMediaTimeValue::Midi(
+            // SAFETY: `native.u.midi.songptrpos` is the MIDI song-pointer arm of
+            // this packed MMTIME union. The unaligned read copies that field
+            // without forming a misaligned reference. The record stays live and
+            // is not a guest address.
+            unsafe { ptr::read_unaligned(ptr::addr_of!(native.u.midi.songptrpos)) },
+        ),
+        TIME_SMPTE => {
+            let mut value = [0_u8; 6];
+            // SAFETY: `native.u.smpte` is the SMPTE arm of this packed MMTIME
+            // union. `value` is a local 6-byte array. The copy reads exactly
+            // `value.len()` bytes from that arm into the array and does not
+            // form a misaligned reference. Both regions stay live, and neither
+            // pointer is a guest address.
+            unsafe {
                 ptr::copy_nonoverlapping(
                     ptr::addr_of!(native.u.smpte).cast::<u8>(),
                     value.as_mut_ptr(),
                     value.len(),
                 );
-                Win16HostMediaTimeValue::Smpte(value)
             }
-            time_type => {
-                let mut value = [0_u8; 8];
+            Win16HostMediaTimeValue::Smpte(value)
+        }
+        time_type => {
+            let mut value = [0_u8; 8];
+            // SAFETY: `native.u` is this packed MMTIME union. `value` is a local
+            // 8-byte array. The copy reads exactly `value.len()` bytes of the
+            // union into that array and does not form a misaligned reference.
+            // Both regions stay live, and neither pointer is a guest address.
+            unsafe {
                 ptr::copy_nonoverlapping(
                     ptr::addr_of!(native.u).cast::<u8>(),
                     value.as_mut_ptr(),
                     value.len(),
                 );
-                Win16HostMediaTimeValue::Unknown { time_type, value }
             }
+            Win16HostMediaTimeValue::Unknown { time_type, value }
         }
     }
 }
@@ -614,15 +645,28 @@ fn native_chunk(info: runtime::Win16HostMmckInfo) -> MMCKINFO {
 
 fn host_chunk(info: &MMCKINFO) -> runtime::Win16HostMmckInfo {
     // The windows-sys structure is packed; each field is copied unaligned.
-    // SAFETY: The field belongs to a packed record. addr_of plus read_unaligned reads it without creating a misaligned reference.
-    unsafe {
-        runtime::Win16HostMmckInfo {
-            chunk_id: ptr::read_unaligned(ptr::addr_of!(info.ckid)),
-            chunk_size: ptr::read_unaligned(ptr::addr_of!(info.cksize)),
-            form_type: ptr::read_unaligned(ptr::addr_of!(info.fccType)),
-            data_offset: ptr::read_unaligned(ptr::addr_of!(info.dwDataOffset)),
-            flags: ptr::read_unaligned(ptr::addr_of!(info.dwFlags)),
-        }
+    runtime::Win16HostMmckInfo {
+        // SAFETY: `info.ckid` belongs to this packed MMCKINFO. The unaligned
+        // read copies that field without forming a misaligned reference. The
+        // record stays live for this read and is not a guest address.
+        chunk_id: unsafe { ptr::read_unaligned(ptr::addr_of!(info.ckid)) },
+        // SAFETY: `info.cksize` belongs to this packed MMCKINFO. The unaligned
+        // read copies that field without forming a misaligned reference. The
+        // record stays live for this read and is not a guest address.
+        chunk_size: unsafe { ptr::read_unaligned(ptr::addr_of!(info.cksize)) },
+        // SAFETY: `info.fccType` belongs to this packed MMCKINFO. The unaligned
+        // read copies that field without forming a misaligned reference. The
+        // record stays live for this read and is not a guest address.
+        form_type: unsafe { ptr::read_unaligned(ptr::addr_of!(info.fccType)) },
+        // SAFETY: `info.dwDataOffset` belongs to this packed MMCKINFO. The
+        // unaligned read copies that field without forming a misaligned
+        // reference. The record stays live for this read and is not a guest
+        // address.
+        data_offset: unsafe { ptr::read_unaligned(ptr::addr_of!(info.dwDataOffset)) },
+        // SAFETY: `info.dwFlags` belongs to this packed MMCKINFO. The unaligned
+        // read copies that field without forming a misaligned reference. The
+        // record stays live for this read and is not a guest address.
+        flags: unsafe { ptr::read_unaligned(ptr::addr_of!(info.dwFlags)) },
     }
 }
 

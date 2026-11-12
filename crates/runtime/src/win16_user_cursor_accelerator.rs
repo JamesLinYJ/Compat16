@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use formats::{NeResourceId, extract_ne_resource};
+use formats::{NeResource, NeResourceId, extract_ne_resource};
 use guest_core::{Registers, memory::Memory};
 use win16_abi::{
     Msg16, Win16AcceleratorEntry, Win16HelpData, Win16ResourceName, Win16ReturnKind,
@@ -13,8 +13,8 @@ use super::{Win16State, windows::WindowReturn};
 use crate::{
     Diagnostic, DiagnosticKind as Kind, RuntimeError, RuntimeHost, Win16HostAccelEntry,
     Win16HostAccelerator, Win16HostHelpData, Win16HostQueuedMessage,
-    Win16HostUserCursorAcceleratorOperation, Win16HostWindow,
-    Win16MessageParam, Win16MessageSource, Win16WindowOperation,
+    Win16HostUserCursorAcceleratorOperation, Win16HostWindow, Win16MessageParam,
+    Win16MessageSource, Win16WindowOperation,
 };
 
 const RT_ACCELERATOR: u16 = 9;
@@ -80,9 +80,8 @@ impl GuestAcceleratorHandles {
 
     fn by_resource(&self, owner_module: u16, resource_id: &NeResourceId) -> Option<u16> {
         self.entries.iter().find_map(|(handle, entry)| {
-            (entry.owner_module == owner_module
-                && same_resource_id(&entry.resource_id, resource_id))
-            .then_some(*handle)
+            (entry.owner_module == owner_module && entry.resource_id == *resource_id)
+                .then_some(*handle)
         })
     }
 
@@ -254,10 +253,15 @@ impl Win16State {
                 )
             }
             Win16UserCursorAcceleratorRequest::LoadAccelerators { instance, name } => {
-                let Some(owner_module) = self.module_handle_for_instance(instance) else {
+                // FindResource treats "#258" as integer id 258, and names
+                // LoadAccelerators as the loader for that accelerator resource.
+                // A table that is already loaded is the same guest handle for
+                // either spelling.
+                let Some(located) = self.accelerator_resource(instance, &name, host)? else {
                     return self.user_cursor_accelerator_return(registers, return_to, 0);
                 };
-                let resource_id = ne_resource_id(name);
+                let owner_module = located.owner_module;
+                let resource_id = located.resource.id.clone();
                 if let Some(handle) = self
                     .guest_accelerators
                     .by_resource(owner_module, &resource_id)
@@ -268,10 +272,18 @@ impl Win16State {
                         u32::from(handle),
                     );
                 }
-                let Some(bytes) = self.accelerator_resource(owner_module, &resource_id, host)?
-                else {
+                if located.resource.byte_length > MAX_ACCELERATOR_RESOURCE_BYTES {
+                    host.report_diagnostic(&Diagnostic::warning(
+                        Kind::CompatibilityGap,
+                        "Win16 RT_ACCELERATOR exceeds the bounded resource parser size; USER returned NULL",
+                    ));
+                    return self.user_cursor_accelerator_return(registers, return_to, 0);
+                }
+                let Some(record) = self.modules.records.get(&owner_module) else {
                     return self.user_cursor_accelerator_return(registers, return_to, 0);
                 };
+                let bytes = extract_ne_resource(&record.image, &located.resource)
+                    .map_err(crate::runtime_error)?;
                 let entries = match win16_abi::exports::decode_accelerator_resource(&bytes) {
                     Ok(entries) => entries,
                     Err(error) => {
@@ -379,38 +391,99 @@ impl Win16State {
         self.window_handles.get(&handle).copied()
     }
 
+    /// Locate one RT_ACCELERATOR by the same name rules as FindResource.
+    /// The returned id is the id stored in the module, so a numeric id and
+    /// its "#digits" name share one loaded table.
     fn accelerator_resource(
         &self,
-        owner_module: u16,
-        id: &NeResourceId,
+        instance: u16,
+        name: &Win16ResourceName,
         host: &mut impl RuntimeHost,
-    ) -> Result<Option<Vec<u8>>, RuntimeError> {
-        let Some(record) = self.modules.records.get(&owner_module) else {
+    ) -> Result<Option<LocatedAccelerator>, RuntimeError> {
+        let info =
+            self.find_resource(instance, name, &Win16ResourceName::Id(RT_ACCELERATOR), host)?;
+        if info == 0 {
+            return Ok(None);
+        }
+        let Some(metadata) = self.resource_metadata(instance, info) else {
             return Ok(None);
         };
-        let Some(definition) = record.definition.as_ref() else {
-            return Ok(None);
+        let candidates = {
+            let Some(record) = self.modules.records.get(&metadata.key.module) else {
+                return Ok(None);
+            };
+            let Some(entry) = record
+                .definition
+                .as_ref()
+                .and_then(|definition| definition.resource_types.get(metadata.type_index))
+            else {
+                return Ok(None);
+            };
+            let mut candidates = Vec::new();
+            candidates
+                .try_reserve(entry.resources.len())
+                .map_err(|error| {
+                    RuntimeError::with_source(
+                        Kind::ResourceExhausted,
+                        "reserve Win16 accelerator resource candidates",
+                        error,
+                    )
+                })?;
+            candidates.extend(
+                entry
+                    .resources
+                    .iter()
+                    .filter(|resource| {
+                        resource.file_offset == metadata.offset
+                            && resource.byte_length == metadata.length
+                    })
+                    .cloned(),
+            );
+            candidates
         };
-        let Some(resource) = definition
-            .resource_types
-            .iter()
-            .filter(|resource_type| resource_type.id == NeResourceId::Numeric(RT_ACCELERATOR))
-            .flat_map(|resource_type| &resource_type.resources)
-            .find(|resource| same_resource_id(&resource.id, id))
+        let Some(resource) =
+            self.accelerator_at_info(metadata.key.module, info, &candidates, host)?
         else {
             return Ok(None);
         };
-        if resource.byte_length > MAX_ACCELERATOR_RESOURCE_BYTES {
-            host.report_diagnostic(&Diagnostic::warning(
-                Kind::CompatibilityGap,
-                "Win16 RT_ACCELERATOR exceeds the bounded resource parser size; USER returned NULL",
-            ));
-            return Ok(None);
-        }
-        extract_ne_resource(&record.image, resource)
-            .map(Some)
-            .map_err(crate::runtime_error)
+        Ok(Some(LocatedAccelerator {
+            owner_module: metadata.key.module,
+            resource,
+        }))
     }
+
+    fn accelerator_at_info(
+        &self,
+        module: u16,
+        info: u16,
+        candidates: &[NeResource],
+        host: &mut impl RuntimeHost,
+    ) -> Result<Option<NeResource>, RuntimeError> {
+        if candidates.len() == 1 {
+            return Ok(candidates.first().cloned());
+        }
+        for resource in candidates {
+            let requested = match &resource.id {
+                NeResourceId::Numeric(id) => Win16ResourceName::Id(*id),
+                NeResourceId::Name(name) => Win16ResourceName::Name(name.clone()),
+            };
+            if self.find_resource(
+                module,
+                &requested,
+                &Win16ResourceName::Id(RT_ACCELERATOR),
+                host,
+            )? == info
+            {
+                return Ok(Some(resource.clone()));
+            }
+        }
+        Ok(None)
+    }
+}
+
+struct LocatedAccelerator {
+    owner_module: u16,
+    resource: NeResource,
 }
 
 fn host_accelerator_entry(entry: &Win16AcceleratorEntry) -> Win16HostAccelEntry {
@@ -418,21 +491,6 @@ fn host_accelerator_entry(entry: &Win16AcceleratorEntry) -> Win16HostAccelEntry 
         flags: entry.flags,
         key: entry.key,
         command: entry.command,
-    }
-}
-
-fn ne_resource_id(name: Win16ResourceName) -> NeResourceId {
-    match name {
-        Win16ResourceName::Id(id) => NeResourceId::Numeric(id),
-        Win16ResourceName::Name(name) => NeResourceId::Name(name),
-    }
-}
-
-fn same_resource_id(left: &NeResourceId, right: &NeResourceId) -> bool {
-    match (left, right) {
-        (NeResourceId::Numeric(left), NeResourceId::Numeric(right)) => left == right,
-        (NeResourceId::Name(left), NeResourceId::Name(right)) => left.eq_ignore_ascii_case(right),
-        _ => false,
     }
 }
 
@@ -448,5 +506,142 @@ fn accelerator_message(message: Msg16, window: Option<Win16HostWindow>) -> Win16
             x: i32::from(message.pt.x),
             y: i32::from(message.pt.y),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use formats::{NeResource, NeResourceId, NeResourceType};
+    use win16_abi::Win16ResourceName;
+
+    use super::super::test_support::{NoHost, tiny_ne_executable};
+    use crate::{Runtime, Win16HostAccelerator};
+
+    fn add_accelerator(runtime: &mut Runtime, id: NeResourceId, bytes: &[u8]) -> (usize, usize) {
+        let state = runtime.win16.as_mut().unwrap();
+        let module = state.modules.main;
+        let record = state.modules.records.get_mut(&module).unwrap();
+        let offset = record.image.len();
+        record.image.extend_from_slice(bytes);
+        let definition = record.definition.as_mut().unwrap();
+        definition.header.resource_table_offset = 0x100;
+        if !definition
+            .resource_types
+            .iter()
+            .any(|entry| entry.id == NeResourceId::Numeric(super::RT_ACCELERATOR))
+        {
+            definition.resource_types.push(NeResourceType {
+                id: NeResourceId::Numeric(super::RT_ACCELERATOR),
+                resources: Vec::new(),
+            });
+        }
+        definition
+            .resource_types
+            .iter_mut()
+            .find(|entry| entry.id == NeResourceId::Numeric(super::RT_ACCELERATOR))
+            .unwrap()
+            .resources
+            .push(NeResource {
+                id,
+                file_offset: offset,
+                byte_length: bytes.len(),
+                flags: 0,
+                handle: 0,
+                usage: 0,
+            });
+        (offset, bytes.len())
+    }
+
+    #[test]
+    fn resource_metadata_accelerator_pound_name_selects_ordinal_table() {
+        let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\ACCEL.NE").unwrap();
+        let bytes = [0x80, 0x41, 0x00, 0x01, 0x00];
+        add_accelerator(&mut runtime, NeResourceId::Numeric(258), &bytes);
+        let state = runtime.win16.as_mut().unwrap();
+        let module = state.modules.main;
+        let mut host = NoHost;
+        let by_id = state
+            .accelerator_resource(module, &Win16ResourceName::Id(258), &mut host)
+            .unwrap()
+            .unwrap();
+        let by_pound = state
+            .accelerator_resource(0, &Win16ResourceName::Name(b"#258".to_vec()), &mut host)
+            .unwrap()
+            .unwrap();
+        assert_eq!(by_id.owner_module, module);
+        assert_eq!(by_pound.owner_module, module);
+        assert_eq!(by_id.resource.id, NeResourceId::Numeric(258));
+        assert_eq!(by_pound.resource.id, NeResourceId::Numeric(258));
+        let image = &state.modules.records.get(&module).unwrap().image;
+        assert_eq!(
+            formats::extract_ne_resource(image, &by_pound.resource).unwrap(),
+            bytes
+        );
+        assert!(
+            state
+                .accelerator_resource(0, &Win16ResourceName::Id(259), &mut host)
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            state
+                .accelerator_resource(0, &Win16ResourceName::Name(b"#259".to_vec()), &mut host)
+                .unwrap()
+                .is_none()
+        );
+        state.guest_accelerators.insert_reserved(
+            7,
+            module,
+            NeResourceId::Numeric(258),
+            Win16HostAccelerator(1),
+        );
+        assert_eq!(
+            state
+                .guest_accelerators
+                .by_resource(module, &by_pound.resource.id),
+            Some(7)
+        );
+    }
+
+    #[test]
+    fn resource_metadata_accelerator_shared_bytes_keep_each_ordinal() {
+        let mut runtime = Runtime::load(&tiny_ne_executable(), &[], br"C:\ACCEL.NE").unwrap();
+        let bytes = [0x80, 0x42, 0x00, 0x02, 0x00];
+        let (offset, length) = add_accelerator(&mut runtime, NeResourceId::Numeric(1), &bytes);
+        let state = runtime.win16.as_mut().unwrap();
+        let module = state.modules.main;
+        state
+            .modules
+            .records
+            .get_mut(&module)
+            .unwrap()
+            .definition
+            .as_mut()
+            .unwrap()
+            .resource_types
+            .iter_mut()
+            .find(|entry| entry.id == NeResourceId::Numeric(super::RT_ACCELERATOR))
+            .unwrap()
+            .resources
+            .push(NeResource {
+                id: NeResourceId::Numeric(2),
+                file_offset: offset,
+                byte_length: length,
+                flags: 0,
+                handle: 0,
+                usage: 0,
+            });
+        let mut host = NoHost;
+        let first = state
+            .accelerator_resource(0, &Win16ResourceName::Id(1), &mut host)
+            .unwrap()
+            .unwrap();
+        let second = state
+            .accelerator_resource(0, &Win16ResourceName::Name(b"#2".to_vec()), &mut host)
+            .unwrap()
+            .unwrap();
+        assert_eq!(first.resource.id, NeResourceId::Numeric(1));
+        assert_eq!(second.resource.id, NeResourceId::Numeric(2));
+        assert_eq!(first.owner_module, second.owner_module);
     }
 }

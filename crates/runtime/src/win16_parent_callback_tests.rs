@@ -671,3 +671,7 @@ fn set_parent_completion_preserves_pending_creation_parent_update() {
             Some(WindowReturn::Create { parent_was_updated: true, .. })));
     }
 }
+
+// Shares this uncounted suite so the dialog-message boundaries execute in CI.
+#[path = "win16_dialog_message_contract_tests.rs"]
+mod dialog_message_contract_tests;

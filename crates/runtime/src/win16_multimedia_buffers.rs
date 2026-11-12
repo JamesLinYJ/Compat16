@@ -65,10 +65,18 @@ const MMSYSERR_NOERROR: u32 = 0;
 const MMSYSERR_INVALHANDLE: u32 = 5;
 const MMSYSERR_NOMEM: u32 = 7;
 const MMSYSERR_NOTSUPPORTED: u32 = 8;
+const MMSYSERR_BADERRNUM: u32 = 9;
+// Windows 3.1 MMSYSTEM.H: MMSYSERR_LASTERROR is MMSYSERR_INVALPARAM.
+const MMSYSERR_LASTERROR: u16 = 11;
 const MMSYSERR_INVALFLAG: u32 = 10;
 const MMSYSERR_INVALPARAM: u32 = 11;
+const WAVERR_BASE: u16 = 32;
+// Windows 3.1 MMSYSTEM.H: WAVERR_LASTERROR is WAVERR_SYNC.
+const WAVERR_LASTERROR: u16 = 35;
 const WAVERR_STILLPLAYING: u32 = 33;
 const WAVERR_UNPREPARED: u32 = 34;
+const WHDR_PREPARED: u32 = 0x0002;
+const WHDR_DRIVER_OWNED: u32 = WHDR_DONE | WHDR_PREPARED | WHDR_INQUEUE;
 const CALLBACK_TYPEMASK: u32 = 0x0007_0000;
 const CALLBACK_NULL: u32 = 0x0000_0000;
 const CALLBACK_WINDOW: u32 = 0x0001_0000;
@@ -278,7 +286,16 @@ impl Win16State {
                     direction: host_direction(direction),
                 })?;
                 match result {
-                    Win16HostWaveResult::DeviceCount(count) => u32::from(count as u16),
+                    // The Win16 return is a UINT word. Wrapping a wider native
+                    // count would report the wrong number of devices.
+                    Win16HostWaveResult::DeviceCount(count) => u16::try_from(count)
+                        .map(u32::from)
+                        .map_err(|_| {
+                            RuntimeError::new(
+                                Kind::CompatibilityGap,
+                                "native WAVE device count does not fit the Win16 return word",
+                            )
+                        })?,
                     _ => {
                         return Err(wave_invariant(
                             "WAVE device count returned the wrong result",
@@ -478,9 +495,17 @@ impl Win16State {
                     error,
                 )
             })?;
+        // WHDR_BEGINLOOP and WHDR_ENDLOOP belong to the application.
+        // waveOutPrepareHeader and waveOutWrite set WHDR_PREPARED, WHDR_DONE,
+        // and WHDR_INQUEUE without clearing the loop bits.
+        let current_flags = record.flags_range.read(self, memory)?;
+        let current_flags = u32::from_le_bytes(current_flags.as_slice().try_into().map_err(|_| {
+            wave_invariant("WAVE header flag span is not four bytes")
+        })?);
+        let flags = (current_flags & !WHDR_DRIVER_OWNED) | (state.flags & WHDR_DRIVER_OWNED);
         writes.push((
             record.flags_range.clone(),
-            wave_bytes(state.flags.to_le_bytes())?,
+            wave_bytes(flags.to_le_bytes())?,
         ));
         if record.direction == Win16WaveDirection::Input {
             writes.push((
@@ -647,3 +672,7 @@ fn wave_bytes<const N: usize>(bytes: [u8; N]) -> Result<Vec<u8>, RuntimeError> {
     output.extend_from_slice(&bytes);
     Ok(output)
 }
+
+#[cfg(test)]
+#[path = "win16_playback_tests.rs"]
+mod tests;

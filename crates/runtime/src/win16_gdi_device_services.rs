@@ -356,3 +356,10 @@ fn wrong_device_result(operation: &'static str) -> RuntimeError {
         format!("host returned the wrong result for Win16 GDI {operation}"),
     )
 }
+
+#[cfg(test)]
+#[path = "win16_gdi_device_services/palette_tests.rs"]
+mod palette_tests;
+#[cfg(test)]
+#[path = "win16_gdi_device_services/object_query_tests.rs"]
+mod object_query_tests;
